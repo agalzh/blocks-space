@@ -30,6 +30,10 @@ commands:
     description: Ask Gemini to translate a query into visualization actions
     usage: /visualize <natural language query>
     permission: stackunknown.visualize
+  center:
+    description: Teleport above the global centroid for camera shots
+    usage: /center
+    permission: stackunknown.center
 permissions:
   stackunknown.ping:
     description: Allows /ping
@@ -48,4 +52,7 @@ permissions:
     default: op
   stackunknown.visualize:
     description: Allows /visualize
+    default: op
+  stackunknown.center:
+    description: Allows /center
     default: op

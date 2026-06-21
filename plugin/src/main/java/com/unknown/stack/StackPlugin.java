@@ -1,5 +1,6 @@
 package com.unknown.stack;
 
+import com.unknown.stack.commands.CenterCommand;
 import com.unknown.stack.commands.LoadMockCommand;
 import com.unknown.stack.commands.OverviewCommand;
 import com.unknown.stack.commands.ResetCommand;
@@ -43,6 +44,7 @@ public class StackPlugin extends JavaPlugin implements Listener {
 
         registerExecutor("loadmock", new LoadMockCommand(this, renderer));
         registerExecutor("reset", new ResetCommand(this, registry));
+        registerExecutor("center", new CenterCommand(registry));
 
         HoverLineTask.start(this, registry, hud);
 
