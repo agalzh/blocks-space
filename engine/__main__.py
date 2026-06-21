@@ -1,14 +1,37 @@
 """CLI: python -m engine <path> [--demo] [--out out/scene.json] [--seed 42]."""
 from __future__ import annotations
 
-import argparse
-import json
+import os
+import subprocess
 import sys
 from pathlib import Path
 
-import numpy as np
 
-from . import cluster, ingest, layout, outliers, scene
+def _reexec_under_venv_if_needed() -> None:
+    """If our deps aren't on this interpreter, re-launch under engine/.venv."""
+    venv_py = Path(__file__).resolve().parent / ".venv" / "Scripts" / "python.exe"
+    if not venv_py.exists():
+        return
+    try:
+        if Path(sys.executable).resolve() == venv_py.resolve():
+            return
+    except OSError:
+        return
+    try:
+        import sklearn  # noqa: F401
+    except ImportError:
+        argv = [str(venv_py), "-m", "engine", *sys.argv[1:]]
+        sys.exit(subprocess.call(argv, env=os.environ.copy()))
+
+
+_reexec_under_venv_if_needed()
+
+import argparse  # noqa: E402
+import json  # noqa: E402
+
+import numpy as np  # noqa: E402
+
+from . import cluster, ingest, layout, outliers, scene  # noqa: E402
 
 
 def _make_demo() -> tuple[np.ndarray, list[str], str]:

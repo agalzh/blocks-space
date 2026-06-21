@@ -19,7 +19,7 @@ services:
       GENERATE_STRUCTURES: "FALSE"
       SPAWN_PROTECTION: "0"
       VIEW_DISTANCE: "16"
-      OPS: "demo"
+      OPS: "demo, Knightbones8283"
       # Custom flat-world preset = pure void layer at y=0 (one air "layer", no bedrock).
       # itzg passes GENERATOR_SETTINGS through to server.properties as level-type-options.
       GENERATOR_SETTINGS: '{"layers":[{"block":"minecraft:air","height":1}],"biome":"minecraft:the_void","features":false}'
