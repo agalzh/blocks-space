@@ -15,6 +15,7 @@ import java.util.logging.Logger;
 public class SceneRenderer {
 
     public static final Material CLUSTER_MEAN_MATERIAL = Material.BEACON;
+    public static final Material CENTROID_MATERIAL = Material.SCULK_CATALYST;
 
     public static final class Result {
         public final int pointsPlaced;
@@ -45,20 +46,31 @@ public class SceneRenderer {
         int[][] bounds = readBounds(scene);
 
         Map<BlockVector, Integer> blockToCluster = new HashMap<>();
-        int[] pointStats = renderPoints(world, scene.optJSONArray("points"), bounds, blockToCluster);
+        Map<BlockVector, Double> blockOutlier = new HashMap<>();
+        int[] pointStats = renderPoints(world, scene.optJSONArray("points"), bounds,
+                blockToCluster, blockOutlier);
 
         Map<Integer, Vector> clusterMean = new HashMap<>();
-        int means = renderClusterMeans(world, scene.optJSONArray("clusters"), bounds, clusterMean);
+        Map<Integer, Integer> clusterSize = new HashMap<>();
+        int means = renderClusterMeans(world, scene.optJSONArray("clusters"), bounds,
+                clusterMean, clusterSize, blockToCluster);
 
         Vector centroid = readCentroid(scene);
+        placeCentroidMarker(world, centroid, bounds);
 
         String name = "?";
+        int totalPoints = 0;
         JSONObject ds = scene.optJSONObject("dataset");
         if (ds != null) {
             name = ds.optString("name", "?");
+            totalPoints = ds.optInt("rows", pointStats[0] + pointStats[1]);
+        } else {
+            totalPoints = pointStats[0] + pointStats[1];
         }
 
-        registry.set(new SceneRegistry.Snapshot(bounds, blockToCluster, clusterMean, centroid, name));
+        registry.set(new SceneRegistry.Snapshot(bounds, blockToCluster, blockOutlier,
+                clusterMean, clusterSize, centroid, name, totalPoints,
+                SceneRegistry.OUTLIER_THRESHOLD));
         return new Result(pointStats[0], means, pointStats[1], name);
     }
 
@@ -89,7 +101,8 @@ public class SceneRenderer {
     }
 
     private int[] renderPoints(World world, JSONArray points, int[][] bounds,
-                               Map<BlockVector, Integer> blockToCluster) {
+                               Map<BlockVector, Integer> blockToCluster,
+                               Map<BlockVector, Double> blockOutlier) {
         if (points == null) return new int[] {0, 0};
         int placed = 0, skipped = 0;
         for (int i = 0; i < points.length(); i++) {
@@ -99,25 +112,54 @@ public class SceneRenderer {
             Material m = Material.matchMaterial(p.getString("block"));
             if (m == null || !m.isBlock()) { skipped++; continue; }
             world.getBlockAt(pos[0], pos[1], pos[2]).setType(m, false);
-            blockToCluster.put(new BlockVector(pos[0], pos[1], pos[2]), p.getInt("cluster_id"));
+            BlockVector key = new BlockVector(pos[0], pos[1], pos[2]);
+            blockToCluster.put(key, p.getInt("cluster_id"));
+            double os = p.optDouble("outlier_score", Double.NaN);
+            if (!Double.isNaN(os)) {
+                blockOutlier.put(key, os);
+            }
             placed++;
         }
         return new int[] {placed, skipped};
     }
 
     private int renderClusterMeans(World world, JSONArray clusters, int[][] bounds,
-                                   Map<Integer, Vector> clusterMean) {
+                                   Map<Integer, Vector> clusterMean,
+                                   Map<Integer, Integer> clusterSize,
+                                   Map<BlockVector, Integer> blockToCluster) {
         if (clusters == null) return 0;
         int placed = 0;
         for (int i = 0; i < clusters.length(); i++) {
             JSONObject c = clusters.getJSONObject(i);
+            int id = c.getInt("id");
+
+            JSONArray pts = c.optJSONArray("point_ids");
+            if (pts != null) {
+                clusterSize.put(id, pts.length());
+            } else {
+                int count = 0;
+                for (Integer v : blockToCluster.values()) if (v == id) count++;
+                clusterSize.put(id, count);
+            }
+
             int[] pos = readCoord(c.getJSONArray("mean"));
             if (!withinBounds(pos, bounds)) continue;
             world.getBlockAt(pos[0], pos[1], pos[2]).setType(CLUSTER_MEAN_MATERIAL, false);
-            clusterMean.put(c.getInt("id"), new Vector(pos[0], pos[1], pos[2]));
+            clusterMean.put(id, new Vector(pos[0], pos[1], pos[2]));
             placed++;
         }
         return placed;
+    }
+
+    private void placeCentroidMarker(World world, Vector centroid, int[][] bounds) {
+        if (centroid == null) return;
+        int x = centroid.getBlockX(), y = centroid.getBlockY(), z = centroid.getBlockZ();
+        if (!withinBounds(new int[] {x, y, z}, bounds)) {
+            log.info("centroid out of bounds: " + x + "," + y + "," + z);
+            return;
+        }
+        world.getBlockAt(x, y, z).setType(CENTROID_MATERIAL, false);
+        log.info("centroid placed at " + x + "," + y + "," + z);
     }
 
     public static World defaultWorld() {
