@@ -1,5 +1,10 @@
 @echo off
-REM Run Paper server. Usage: server\run.cmd
-cd /d "%~dp0"
-set "JAVA_HOME=%~dp0..\tools\jdk-17.0.19+10"
-"%JAVA_HOME%\bin\java.exe" -Xms2G -Xmx4G -XX:+UseG1GC -jar paper.jar nogui
+REM Boot Paper in Docker (workaround for Windows 24H2 AF_UNIX regression).
+REM First run pulls the image (~600 MB) and downloads Paper 1.20.4.
+pushd "%~dp0\.."
+docker compose up -d
+echo.
+echo Server starting. Tail logs with:    docker compose logs -f mc
+echo Stop the server with:               docker compose down
+echo Connect from Minecraft 1.20.4 to:   localhost:25565
+popd

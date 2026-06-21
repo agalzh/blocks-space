@@ -1,0 +1,31 @@
+services:
+  mc:
+    image: itzg/minecraft-server:java17
+    container_name: stack-unknown-mc
+    tty: true
+    stdin_open: true
+    ports:
+      - "25565:25565"
+    environment:
+      EULA: "TRUE"
+      TYPE: "PAPER"
+      VERSION: "1.20.4"
+      MEMORY: "2G"
+      ONLINE_MODE: "FALSE"
+      MODE: "creative"
+      FORCE_GAMEMODE: "TRUE"
+      DIFFICULTY: "peaceful"
+      LEVEL_TYPE: "minecraft:flat"
+      GENERATE_STRUCTURES: "FALSE"
+      SPAWN_PROTECTION: "0"
+      VIEW_DISTANCE: "16"
+      OPS: "demo"
+      # Custom flat-world preset = pure void layer at y=0 (one air "layer", no bedrock).
+      # itzg passes GENERATOR_SETTINGS through to server.properties as level-type-options.
+      GENERATOR_SETTINGS: '{"layers":[{"block":"minecraft:air","height":1}],"biome":"minecraft:the_void","features":false}'
+    volumes:
+      - ./server/plugins:/data/plugins
+      - mc-data:/data
+
+volumes:
+  mc-data:
