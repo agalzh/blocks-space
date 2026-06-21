@@ -6,3 +6,4 @@ hdbscan
 google-generativeai
 websockets
 python-dotenv
+jsonschema
