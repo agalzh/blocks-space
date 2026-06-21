@@ -1,10 +1,12 @@
 package com.unknown.stack.interact;
 
+import io.papermc.paper.scoreboard.numbers.NumberFormat;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.scoreboard.DisplaySlot;
 import org.bukkit.scoreboard.Objective;
+import org.bukkit.scoreboard.Score;
 import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.ScoreboardManager;
 import org.bukkit.scoreboard.Team;
@@ -62,7 +64,13 @@ public class SidebarHud {
                 Team t = board.registerNewTeam("t" + i);
                 t.addEntry(entries[i]);
                 teams[i] = t;
-                obj.getScore(entries[i]).setScore(MAX_LINES - i);
+                Score s = obj.getScore(entries[i]);
+                s.setScore(MAX_LINES - i);
+                try {
+                    s.numberFormat(NumberFormat.blank());
+                } catch (NoSuchMethodError | NoClassDefFoundError ignored) {
+                    // older API; side numbers stay visible
+                }
             }
         }
 
