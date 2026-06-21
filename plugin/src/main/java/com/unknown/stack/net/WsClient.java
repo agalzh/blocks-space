@@ -1,11 +1,13 @@
 package com.unknown.stack.net;
 
+import com.unknown.stack.interact.ActionExecutor;
 import com.unknown.stack.render.SceneRenderer;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.net.URI;
@@ -18,21 +20,26 @@ public class WsClient extends WebSocketClient {
 
     private static final int BACKOFF_START_SEC = 2;
     private static final int BACKOFF_MAX_SEC = 30;
+    private static final int CHAT_CHUNK_CHARS = 256;
 
     private final JavaPlugin plugin;
     private final SceneRenderer renderer;
+    private final ActionExecutor actionExecutor;
     private final URI uri;
 
     private int backoffSec = BACKOFF_START_SEC;
     private volatile boolean shuttingDown = false;
 
     private final Map<String, CommandSender> pendingByPath = new ConcurrentHashMap<>();
+    private volatile CommandSender pendingOverview;
+    private volatile CommandSender pendingVisualize;
 
-    public WsClient(JavaPlugin plugin, URI uri, SceneRenderer renderer) {
+    public WsClient(JavaPlugin plugin, URI uri, SceneRenderer renderer, ActionExecutor actionExecutor) {
         super(uri);
         this.plugin = plugin;
         this.uri = uri;
         this.renderer = renderer;
+        this.actionExecutor = actionExecutor;
         setConnectionLostTimeout(60);
     }
 
@@ -56,6 +63,29 @@ public class WsClient extends WebSocketClient {
         feedback.sendMessage("§7uploading " + path + " (fmt=" + fmt + ")...");
     }
 
+    public void sendOverview(CommandSender feedback) {
+        if (!isOpen()) {
+            feedback.sendMessage("§cWS not connected — start the engine: python -m engine.ws_server");
+            return;
+        }
+        pendingOverview = feedback;
+        send(new JSONObject().put("cmd", "overview").toString());
+        feedback.sendMessage("§7asking Gemini for an overview...");
+    }
+
+    public void sendVisualize(String query, CommandSender feedback) {
+        if (!isOpen()) {
+            feedback.sendMessage("§cWS not connected — start the engine: python -m engine.ws_server");
+            return;
+        }
+        pendingVisualize = feedback;
+        send(new JSONObject()
+                .put("cmd", "visualize")
+                .put("query", query)
+                .toString());
+        feedback.sendMessage("§7asking Gemini: " + query);
+    }
+
     @Override
     public void onOpen(ServerHandshake handshake) {
         plugin.getLogger().info("WS connected: " + uri);
@@ -74,6 +104,8 @@ public class WsClient extends WebSocketClient {
         String type = msg.optString("type");
         switch (type) {
             case "scene" -> handleScene(msg.getJSONObject("scene"));
+            case "overview" -> handleOverview(msg.optString("text", ""));
+            case "actions" -> handleActions(msg);
             case "pong" -> plugin.getLogger().fine("WS pong");
             case "error" -> handleError(msg.optString("message", "(unspecified)"));
             default -> plugin.getLogger().warning("WS unexpected type: " + type);
@@ -81,7 +113,6 @@ public class WsClient extends WebSocketClient {
     }
 
     private void handleScene(JSONObject scene) {
-        // World mutation must run on the main thread.
         Bukkit.getScheduler().runTask(plugin, () -> {
             try {
                 SceneRenderer.Result r = renderer.render(scene, SceneRenderer.defaultWorld());
@@ -100,13 +131,50 @@ public class WsClient extends WebSocketClient {
         });
     }
 
+    private void handleOverview(String text) {
+        CommandSender target = pendingOverview;
+        pendingOverview = null;
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            Bukkit.broadcastMessage("§6§l[Overview]");
+            for (String chunk : chunk(text, CHAT_CHUNK_CHARS)) {
+                Bukkit.broadcastMessage("§f" + chunk);
+            }
+            if (target != null) target.sendMessage("§7(overview broadcast)");
+        });
+    }
+
+    private void handleActions(JSONObject msg) {
+        CommandSender target = pendingVisualize;
+        pendingVisualize = null;
+        String query = msg.optString("query", "");
+        String source = msg.optString("source", "?");
+        JSONArray actions = msg.optJSONArray("actions");
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            CommandSender feedback = target != null ? target : Bukkit.getConsoleSender();
+            plugin.getLogger().info("actions source=" + source + " query=" + query
+                    + " count=" + (actions == null ? 0 : actions.length()));
+            Bukkit.broadcastMessage("§6§l[Visualize] §7" + query
+                    + " §8(source=" + source + ")");
+            if (actions == null || actions.length() == 0) {
+                Bukkit.broadcastMessage("§eno valid actions returned");
+                return;
+            }
+            actionExecutor.apply(actions, query, feedback);
+        });
+    }
+
     private void handleError(String detail) {
         plugin.getLogger().warning("WS server error: " + detail);
-        broadcastFeedback("§cupload error: " + detail);
+        CommandSender o = pendingOverview;
+        CommandSender v = pendingVisualize;
+        pendingOverview = null;
+        pendingVisualize = null;
+        if (o != null) o.sendMessage("§coverview error: " + detail);
+        if (v != null) v.sendMessage("§cvisualize error: " + detail);
+        if (o == null && v == null) broadcastFeedback("§cupload error: " + detail);
     }
 
     private void broadcastFeedback(String text) {
-        // Deliver to whoever asked. If we lost the mapping (multi-pending), broadcast.
         if (pendingByPath.isEmpty()) {
             Bukkit.broadcastMessage(text);
             return;
@@ -115,6 +183,22 @@ public class WsClient extends WebSocketClient {
             s.sendMessage(text);
         }
         pendingByPath.clear();
+    }
+
+    private static java.util.List<String> chunk(String s, int max) {
+        java.util.List<String> out = new java.util.ArrayList<>();
+        if (s == null || s.isEmpty()) return out;
+        for (String para : s.split("\\n\\s*\\n")) {
+            String p = para.trim();
+            while (p.length() > max) {
+                int cut = p.lastIndexOf(' ', max);
+                if (cut < max / 2) cut = max;
+                out.add(p.substring(0, cut));
+                p = p.substring(cut).trim();
+            }
+            if (!p.isEmpty()) out.add(p);
+        }
+        return out;
     }
 
     @Override

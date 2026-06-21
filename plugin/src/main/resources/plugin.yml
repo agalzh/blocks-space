@@ -22,6 +22,14 @@ commands:
     description: Clear all blocks within the last rendered scene bounds
     usage: /reset
     permission: stackunknown.reset
+  overview:
+    description: Ask Gemini for a natural-language summary of the loaded dataset
+    usage: /overview
+    permission: stackunknown.overview
+  visualize:
+    description: Ask Gemini to translate a query into visualization actions
+    usage: /visualize <natural language query>
+    permission: stackunknown.visualize
 permissions:
   stackunknown.ping:
     description: Allows /ping
@@ -34,4 +42,10 @@ permissions:
     default: op
   stackunknown.reset:
     description: Allows /reset
+    default: op
+  stackunknown.overview:
+    description: Allows /overview
+    default: op
+  stackunknown.visualize:
+    description: Allows /visualize
     default: op

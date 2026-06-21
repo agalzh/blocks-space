@@ -1,8 +1,11 @@
 package com.unknown.stack;
 
 import com.unknown.stack.commands.LoadMockCommand;
+import com.unknown.stack.commands.OverviewCommand;
 import com.unknown.stack.commands.ResetCommand;
 import com.unknown.stack.commands.UploadCommand;
+import com.unknown.stack.commands.VisualizeCommand;
+import com.unknown.stack.interact.ActionExecutor;
 import com.unknown.stack.interact.HoverLineTask;
 import com.unknown.stack.interact.SidebarHud;
 import com.unknown.stack.net.WsClient;
@@ -47,10 +50,14 @@ public class StackPlugin extends JavaPlugin implements Listener {
 
         Bukkit.getScheduler().runTaskLater(this, this::freezeNoon, 20L);
 
+        ActionExecutor actionExecutor = new ActionExecutor(this, registry);
+
         String wsUrl = System.getenv().getOrDefault("STACK_WS_URL", DEFAULT_WS_URL);
         try {
-            wsClient = new WsClient(this, new URI(wsUrl), renderer);
+            wsClient = new WsClient(this, new URI(wsUrl), renderer, actionExecutor);
             registerExecutor("upload", new UploadCommand(wsClient));
+            registerExecutor("overview", new OverviewCommand(wsClient));
+            registerExecutor("visualize", new VisualizeCommand(wsClient));
             Bukkit.getScheduler().runTaskAsynchronously(this, () -> {
                 getLogger().info("WS connecting to " + wsUrl);
                 wsClient.connect();
