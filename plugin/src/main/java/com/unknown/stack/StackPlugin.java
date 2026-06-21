@@ -1,8 +1,11 @@
 package com.unknown.stack;
 
 import com.unknown.stack.commands.LoadMockCommand;
+import com.unknown.stack.commands.ResetCommand;
 import com.unknown.stack.commands.UploadCommand;
+import com.unknown.stack.interact.HoverLineTask;
 import com.unknown.stack.net.WsClient;
+import com.unknown.stack.render.SceneRegistry;
 import com.unknown.stack.render.SceneRenderer;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
@@ -21,11 +24,15 @@ public class StackPlugin extends JavaPlugin {
 
     @Override
     public void onEnable() {
-        getLogger().info("StackUnknown plugin enabled (phase 3).");
+        getLogger().info("StackUnknown plugin enabled (phase 4).");
 
-        SceneRenderer renderer = new SceneRenderer(getLogger());
+        SceneRegistry registry = new SceneRegistry();
+        SceneRenderer renderer = new SceneRenderer(getLogger(), registry);
 
-        registerExecutor("loadmock", new LoadMockCommand(this));
+        registerExecutor("loadmock", new LoadMockCommand(this, renderer));
+        registerExecutor("reset", new ResetCommand(this, registry));
+
+        HoverLineTask.start(this, registry);
 
         String wsUrl = System.getenv().getOrDefault("STACK_WS_URL", DEFAULT_WS_URL);
         try {

@@ -21,9 +21,9 @@ public class LoadMockCommand implements CommandExecutor {
     private final JavaPlugin plugin;
     private final SceneRenderer renderer;
 
-    public LoadMockCommand(JavaPlugin plugin) {
+    public LoadMockCommand(JavaPlugin plugin, SceneRenderer renderer) {
         this.plugin = plugin;
-        this.renderer = new SceneRenderer(plugin.getLogger());
+        this.renderer = renderer;
     }
 
     @Override

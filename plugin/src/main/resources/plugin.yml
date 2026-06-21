@@ -18,6 +18,10 @@ commands:
     description: Ask the Python engine to ingest a dataset and stream the scene back
     usage: /upload <absolute-path> [csv|json]
     permission: stackunknown.upload
+  reset:
+    description: Clear all blocks within the last rendered scene bounds
+    usage: /reset
+    permission: stackunknown.reset
 permissions:
   stackunknown.ping:
     description: Allows /ping
@@ -27,4 +31,7 @@ permissions:
     default: op
   stackunknown.upload:
     description: Allows /upload
+    default: op
+  stackunknown.reset:
+    description: Allows /reset
     default: op
