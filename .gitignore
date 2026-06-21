@@ -26,6 +26,9 @@ server/plugins/*
 out/*
 !out/.gitkeep
 
+# Generated scenes copied into samples/ for /loadmock (source data stays tracked)
+samples/*_scene.json
+
 # IDE
 .idea/
 .vscode/
