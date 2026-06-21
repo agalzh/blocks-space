@@ -1,0 +1,38 @@
+# Secrets
+.env
+
+# Python
+engine/.venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# Java / Maven
+plugin/target/
+*.class
+
+# Paper server runtime (keep plugins/, helper scripts, and configured properties)
+server/*
+!server/plugins/
+!server/plugins/.gitkeep
+!server/run.cmd
+!server/server.properties
+!server/eula.txt
+server/plugins/*
+!server/plugins/.gitkeep
+
+# Engine output
+out/*
+!out/.gitkeep
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Local toolchain (large; user-installable)
+tools/
+
+# Claude harness
+.claude/
