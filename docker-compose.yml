@@ -25,6 +25,7 @@ services:
       GENERATOR_SETTINGS: '{"layers":[{"block":"minecraft:air","height":1}],"biome":"minecraft:the_void","features":false}'
     volumes:
       - ./server/plugins:/data/plugins
+      - ./samples:/data/samples:ro
       - mc-data:/data
 
 volumes:

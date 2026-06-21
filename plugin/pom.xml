@@ -34,6 +34,11 @@
             <artifactId>Java-WebSocket</artifactId>
             <version>1.5.6</version>
         </dependency>
+        <dependency>
+            <groupId>org.json</groupId>
+            <artifactId>json</artifactId>
+            <version>20240303</version>
+        </dependency>
     </dependencies>
 
     <build>
@@ -60,6 +65,10 @@
                                 <relocation>
                                     <pattern>org.java_websocket</pattern>
                                     <shadedPattern>com.unknown.stack.shaded.javawebsocket</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.json</pattern>
+                                    <shadedPattern>com.unknown.stack.shaded.json</shadedPattern>
                                 </relocation>
                             </relocations>
                         </configuration>

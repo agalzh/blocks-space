@@ -10,7 +10,14 @@ commands:
     description: Phase 0 smoke test command
     usage: /ping
     permission: stackunknown.ping
+  loadmock:
+    description: Load a Scene Graph JSON from disk and render its points + cluster means
+    usage: /loadmock <path>
+    permission: stackunknown.loadmock
 permissions:
   stackunknown.ping:
     description: Allows /ping
     default: true
+  stackunknown.loadmock:
+    description: Allows /loadmock
+    default: op

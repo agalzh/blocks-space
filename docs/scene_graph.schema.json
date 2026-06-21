@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stack-unknown.local/schemas/scene_graph.schema.json",
+  "title": "Stack Unknown Scene Graph",
+  "description": "Contract between the Python math engine and the Paper plugin renderer. Coordinates are integers in MC world space; colors are block IDs (not hex). Locked at Phase 1.",
+  "type": "object",
+  "required": ["session_id", "dataset", "bounds", "global_centroid", "clusters", "points"],
+  "additionalProperties": false,
+  "properties": {
+    "session_id": {
+      "type": "string",
+      "description": "UUID string; one per ingest run."
+    },
+    "dataset": {
+      "type": "object",
+      "required": ["name", "rows", "dims"],
+      "additionalProperties": false,
+      "properties": {
+        "name":  { "type": "string", "minLength": 1 },
+        "rows":  { "type": "integer", "minimum": 0 },
+        "dims":  { "type": "integer", "minimum": 1 }
+      }
+    },
+    "bounds": {
+      "type": "object",
+      "required": ["min", "max"],
+      "additionalProperties": false,
+      "properties": {
+        "min": { "$ref": "#/$defs/coord" },
+        "max": { "$ref": "#/$defs/coord" }
+      },
+      "description": "Inclusive AABB in MC world space. Default cap: X 0-128, Y 4-60, Z 0-128."
+    },
+    "global_centroid": { "$ref": "#/$defs/coord" },
+    "clusters": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/cluster" }
+    },
+    "points": {
+      "type": "array",
+      "maxItems": 2000,
+      "description": "Hard cap of 2000 per scene for chunk-load safety.",
+      "items": { "$ref": "#/$defs/point" }
+    },
+    "commands": {
+      "type": "array",
+      "description": "Optional list of post-render commands (recolor / highlight / hide) emitted by Gemini in later phases.",
+      "items": { "type": "object" }
+    }
+  },
+  "$defs": {
+    "coord": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": { "type": "integer" },
+      "description": "[x, y, z] integer voxel coordinate."
+    },
+    "blockId": {
+      "type": "string",
+      "pattern": "^minecraft:[a-z0-9_]+$",
+      "description": "Vanilla namespaced block ID, e.g. minecraft:red_concrete."
+    },
+    "cluster": {
+      "type": "object",
+      "required": ["id", "label", "color", "mean", "point_ids"],
+      "additionalProperties": false,
+      "properties": {
+        "id":        { "type": "integer", "minimum": 0 },
+        "label":     { "type": "string" },
+        "color":     { "$ref": "#/$defs/blockId" },
+        "mean":      { "$ref": "#/$defs/coord" },
+        "point_ids": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 0 }
+        }
+      }
+    },
+    "point": {
+      "type": "object",
+      "required": ["id", "pos", "cluster_id", "block"],
+      "additionalProperties": false,
+      "properties": {
+        "id":             { "type": "integer", "minimum": 0 },
+        "pos":            { "$ref": "#/$defs/coord" },
+        "cluster_id":     { "type": "integer", "minimum": 0 },
+        "outlier_score":  { "type": "number", "minimum": 0, "maximum": 1 },
+        "block":          { "$ref": "#/$defs/blockId" },
+        "meta":           { "type": "object" }
+      }
+    }
+  }
+}
