@@ -141,7 +141,14 @@ public final class WorldDecor {
             case NONE -> {}
         }
 
+        // Layered lighting: above canopy, inside foliage, and four perimeter lights at ground+2.
         placeLight(w, cx, cy + 6, cz);
+        placeLight(w, cx, cy + 3, cz);
+        int half = Math.max(1, radius - 2);
+        placeLight(w, cx + half, cy + 2, cz);
+        placeLight(w, cx - half, cy + 2, cz);
+        placeLight(w, cx, cy + 2, cz + half);
+        placeLight(w, cx, cy + 2, cz - half);
     }
 
     private static IslandFeature pickFeature(Random rng) {
