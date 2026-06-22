@@ -3,6 +3,9 @@ package com.unknown.stack.interact;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.block.Block;
+import org.bukkit.block.data.BlockData;
+import org.bukkit.block.data.Levelled;
 
 public final class SpawnPlatform {
 
@@ -24,7 +27,7 @@ public final class SpawnPlatform {
         if (w == null) return;
 
         clearArea(w, -6, 62, -6, 6, 70, 6);
-        clearArea(w, SPAWN_CX - 6, 61, SPAWN_CZ - 6, SPAWN_CX + 6, 70, SPAWN_CZ + 6);
+        clearArea(w, SPAWN_CX - 6, 61, SPAWN_CZ - 6, SPAWN_CX + 6, 72, SPAWN_CZ + 6);
 
         int flowerIdx = 0;
         for (int dx = -5; dx <= 5; dx++) {
@@ -50,7 +53,7 @@ public final class SpawnPlatform {
             }
         }
 
-        int[][] pond = {{-3, -3}, {-3, -4}, {-4, -3}};
+        int[][] pond = {{4, -1}, {4, -2}, {5, -1}};
         for (int[] p : pond) {
             int wx = SPAWN_CX + p[0];
             int wz = SPAWN_CZ + p[1];
@@ -58,8 +61,8 @@ public final class SpawnPlatform {
             w.getBlockAt(wx, 64, wz).setType(Material.AIR, false);
         }
 
-        placeOakTree(w, SPAWN_CX + 3, 64, SPAWN_CZ + 3);
-        placeCherryTree(w, SPAWN_CX - 2, 64, SPAWN_CZ + 4);
+        placeRealisticOak(w, SPAWN_CX + 3, 64, SPAWN_CZ - 3);
+        placeRealisticCherry(w, SPAWN_CX - 3, 64, SPAWN_CZ - 3);
 
         int[][] lampSpots = {{-5, 0}, {5, 0}, {0, -5}, {0, 5}};
         for (int[] s : lampSpots) {
@@ -80,17 +83,19 @@ public final class SpawnPlatform {
             }
         }
 
+        placeLight(w, SPAWN_CX, 67, SPAWN_CZ);
+
         w.setSpawnLocation(new Location(w, SPAWN_CX + 0.5, STAND_Y, SPAWN_CZ + 0.5));
     }
 
     private static boolean isReserved(int dx, int dz) {
         if ((dx == -5 || dx == 5) && dz == 0) return true;
         if (dx == 0 && (dz == -5 || dz == 5)) return true;
-        if (dx == 3 && dz == 3) return true;
-        if (dx == -2 && dz == 4) return true;
+        if (dx == 3 && dz == -3) return true;
         if (dx == -3 && dz == -3) return true;
-        if (dx == -3 && dz == -4) return true;
-        if (dx == -4 && dz == -3) return true;
+        if (dx == 4 && dz == -1) return true;
+        if (dx == 4 && dz == -2) return true;
+        if (dx == 5 && dz == -1) return true;
         return false;
     }
 
@@ -101,41 +106,97 @@ public final class SpawnPlatform {
                     w.getBlockAt(x, y, z).setType(Material.AIR, false);
     }
 
-    private static void placeOakTree(World w, int x, int y, int z) {
-        for (int i = 0; i < 4; i++) {
-            w.getBlockAt(x, y + i, z).setType(Material.OAK_LOG, false);
+    private static void placeRealisticOak(World w, int x, int y, int z) {
+        Material log = Material.OAK_LOG;
+        Material leaf = Material.OAK_LEAVES;
+
+        for (int i = 0; i < 5; i++) {
+            w.getBlockAt(x, y + i, z).setType(log, false);
         }
-        for (int dy = 2; dy <= 4; dy++) {
-            int radius = (dy == 4) ? 1 : 2;
-            for (int dx = -radius; dx <= radius; dx++) {
-                for (int dz = -radius; dz <= radius; dz++) {
-                    if (dx == 0 && dz == 0 && dy < 4) continue;
-                    if (Math.abs(dx) == 2 && Math.abs(dz) == 2 && dy < 4) continue;
-                    if (w.getBlockAt(x + dx, y + dy, z + dz).getType() == Material.AIR) {
-                        w.getBlockAt(x + dx, y + dy, z + dz).setType(Material.OAK_LEAVES, false);
-                    }
-                }
+
+        int[][] diamond = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
+        for (int[] d : diamond) {
+            safeLeaf(w, x + d[0], y + 2, z + d[1], leaf);
+        }
+
+        for (int dx = -2; dx <= 2; dx++) {
+            for (int dz = -2; dz <= 2; dz++) {
+                if (dx == 0 && dz == 0) continue;
+                if (Math.abs(dx) == 2 && Math.abs(dz) == 2) continue;
+                safeLeaf(w, x + dx, y + 3, z + dz, leaf);
             }
         }
-        w.getBlockAt(x, y + 4, z).setType(Material.OAK_LEAVES, false);
+
+        for (int dx = -1; dx <= 1; dx++) {
+            for (int dz = -1; dz <= 1; dz++) {
+                if (dx == 0 && dz == 0) continue;
+                if (Math.abs(dx) == 1 && Math.abs(dz) == 1) continue;
+                safeLeaf(w, x + dx, y + 4, z + dz, leaf);
+            }
+        }
+
+        safeLeaf(w, x, y + 5, z, leaf);
+
+        w.getBlockAt(x - 1, y + 1, z).setType(log, false);
+        safeLeaf(w, x - 2, y + 1, z, leaf);
+        safeLeaf(w, x - 2, y + 2, z, leaf);
+        safeLeaf(w, x - 1, y + 2, z, leaf);
     }
 
-    private static void placeCherryTree(World w, int x, int y, int z) {
-        for (int i = 0; i < 4; i++) {
-            w.getBlockAt(x, y + i, z).setType(Material.CHERRY_LOG, false);
+    private static void placeRealisticCherry(World w, int x, int y, int z) {
+        Material log = Material.CHERRY_LOG;
+        Material leaf = Material.CHERRY_LEAVES;
+
+        for (int i = 0; i < 5; i++) {
+            w.getBlockAt(x, y + i, z).setType(log, false);
         }
-        for (int dy = 2; dy <= 4; dy++) {
-            int radius = (dy == 4) ? 1 : 2;
-            for (int dx = -radius; dx <= radius; dx++) {
-                for (int dz = -radius; dz <= radius; dz++) {
-                    if (dx == 0 && dz == 0 && dy < 4) continue;
-                    if (Math.abs(dx) == 2 && Math.abs(dz) == 2 && dy < 4) continue;
-                    if (w.getBlockAt(x + dx, y + dy, z + dz).getType() == Material.AIR) {
-                        w.getBlockAt(x + dx, y + dy, z + dz).setType(Material.CHERRY_LEAVES, false);
-                    }
-                }
+
+        for (int dx = -2; dx <= 2; dx++) {
+            for (int dz = -2; dz <= 2; dz++) {
+                if (dx == 0 && dz == 0) continue;
+                if (Math.abs(dx) == 2 && Math.abs(dz) == 2) continue;
+                safeLeaf(w, x + dx, y + 3, z + dz, leaf);
             }
         }
-        w.getBlockAt(x, y + 4, z).setType(Material.CHERRY_LEAVES, false);
+
+        for (int dx = -2; dx <= 2; dx++) {
+            for (int dz = -2; dz <= 2; dz++) {
+                if (dx == 0 && dz == 0) continue;
+                if (Math.abs(dx) == 2 && Math.abs(dz) == 2) continue;
+                safeLeaf(w, x + dx, y + 4, z + dz, leaf);
+            }
+        }
+
+        for (int dx = -1; dx <= 1; dx++) {
+            for (int dz = -1; dz <= 1; dz++) {
+                if (dx == 0 && dz == 0) continue;
+                safeLeaf(w, x + dx, y + 5, z + dz, leaf);
+            }
+        }
+
+        safeLeaf(w, x, y + 5, z, leaf);
+        safeLeaf(w, x, y + 6, z, leaf);
+
+        w.getBlockAt(x + 1, y + 2, z).setType(log, false);
+        safeLeaf(w, x + 2, y + 2, z, leaf);
+        safeLeaf(w, x + 2, y + 3, z, leaf);
+        safeLeaf(w, x + 1, y + 3, z, leaf);
+    }
+
+    private static void safeLeaf(World w, int x, int y, int z, Material leaf) {
+        if (w.getBlockAt(x, y, z).getType() == Material.AIR) {
+            w.getBlockAt(x, y, z).setType(leaf, false);
+        }
+    }
+
+    private static void placeLight(World w, int x, int y, int z) {
+        Block b = w.getBlockAt(x, y, z);
+        if (b.getType() != Material.AIR) return;
+        b.setType(Material.LIGHT, false);
+        BlockData data = b.getBlockData();
+        if (data instanceof Levelled lev) {
+            lev.setLevel(15);
+            b.setBlockData(lev, false);
+        }
     }
 }

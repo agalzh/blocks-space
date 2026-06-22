@@ -2,6 +2,9 @@ package com.unknown.stack.interact;
 
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.block.Block;
+import org.bukkit.block.data.BlockData;
+import org.bukkit.block.data.Levelled;
 
 import java.util.Random;
 
@@ -44,6 +47,29 @@ public final class WorldDecor {
         randomIslands(w);
         boundsPillars(w);
         skyLanterns(w);
+        dataAreaLighting(w);
+    }
+
+    private static void dataAreaLighting(World w) {
+        int[] xs = {0, 64, 128};
+        int[] zs = {0, 64, 128};
+        for (int x : xs) {
+            for (int z : zs) {
+                placeLight(w, x, 62, z);
+                placeLight(w, x, 3, z);
+            }
+        }
+    }
+
+    private static void placeLight(World w, int x, int y, int z) {
+        Block b = w.getBlockAt(x, y, z);
+        if (b.getType() != Material.AIR) return;
+        b.setType(Material.LIGHT, false);
+        BlockData data = b.getBlockData();
+        if (data instanceof Levelled lev) {
+            lev.setLevel(15);
+            b.setBlockData(lev, false);
+        }
     }
 
     private static void randomIslands(World w) {
@@ -114,6 +140,8 @@ public final class WorldDecor {
             case LANTERN_POST -> placeLanternPost(w, cx + offsetX, cy + 1, cz + offsetZ);
             case NONE -> {}
         }
+
+        placeLight(w, cx, cy + 6, cz);
     }
 
     private static IslandFeature pickFeature(Random rng) {
