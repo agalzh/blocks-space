@@ -38,6 +38,10 @@ commands:
     description: Toggle the X/Y/Z reference axes through the centroid
     usage: /axes [show|hide|toggle]
     permission: stackunknown.axes
+  query:
+    description: Ask Gemini a question about the loaded dataset
+    usage: /query <question>
+    permission: stackunknown.query
 permissions:
   stackunknown.ping:
     description: Allows /ping
@@ -62,4 +66,7 @@ permissions:
     default: op
   stackunknown.axes:
     description: Allows /axes
+    default: op
+  stackunknown.query:
+    description: Allows /query
     default: op

@@ -57,15 +57,16 @@ public class SceneRenderer {
         Map<BlockVector, Integer> blockToCluster = new HashMap<>();
         Map<BlockVector, Double> blockOutlier = new HashMap<>();
         Map<BlockVector, Map<String, Double>> blockFeatures = new HashMap<>();
+        Map<BlockVector, String> blockOriginal = new HashMap<>();
         int[] pointStats = renderPoints(world, scene.optJSONArray("points"), bounds,
-                blockToCluster, blockOutlier, blockFeatures);
+                blockToCluster, blockOutlier, blockFeatures, blockOriginal);
 
         Map<Integer, Vector> clusterMean = new HashMap<>();
         Map<Integer, Integer> clusterSize = new HashMap<>();
         Map<Integer, Color> clusterColor = new HashMap<>();
         int means = renderClusterMeans(world, scene.optJSONArray("clusters"), bounds,
                 clusterMean, clusterSize, clusterColor,
-                blockToCluster, blockOutlier, blockFeatures);
+                blockToCluster, blockOutlier, blockFeatures, blockOriginal);
 
         Vector centroid = readCentroid(scene);
         placeCentroidMarker(world, centroid, bounds);
@@ -74,6 +75,7 @@ public class SceneRenderer {
             blockToCluster.remove(cKey);
             blockOutlier.remove(cKey);
             blockFeatures.remove(cKey);
+            blockOriginal.remove(cKey);
         }
 
         List<String> featureNames = extractFeatureNames(scene);
@@ -88,7 +90,7 @@ public class SceneRenderer {
         }
 
         registry.set(new SceneRegistry.Snapshot(bounds, blockToCluster, blockOutlier, blockFeatures,
-                clusterMean, clusterSize, clusterColor, centroid, name, totalPoints,
+                blockOriginal, clusterMean, clusterSize, clusterColor, centroid, name, totalPoints,
                 SceneRegistry.OUTLIER_THRESHOLD, featureNames));
         if (axisManager != null) axisManager.clearTracking();
         return new Result(pointStats[0], means, pointStats[1], name);
@@ -136,18 +138,21 @@ public class SceneRenderer {
     private int[] renderPoints(World world, JSONArray points, int[][] bounds,
                                Map<BlockVector, Integer> blockToCluster,
                                Map<BlockVector, Double> blockOutlier,
-                               Map<BlockVector, Map<String, Double>> blockFeatures) {
+                               Map<BlockVector, Map<String, Double>> blockFeatures,
+                               Map<BlockVector, String> blockOriginal) {
         if (points == null) return new int[] {0, 0};
         int placed = 0, skipped = 0;
         for (int i = 0; i < points.length(); i++) {
             JSONObject p = points.getJSONObject(i);
             int[] pos = readCoord(p.getJSONArray("pos"));
             if (!withinBounds(pos, bounds)) { skipped++; continue; }
-            Material m = Material.matchMaterial(p.getString("block"));
+            String blockId = p.getString("block");
+            Material m = Material.matchMaterial(blockId);
             if (m == null || !m.isBlock()) { skipped++; continue; }
             world.getBlockAt(pos[0], pos[1], pos[2]).setType(m, false);
             BlockVector key = new BlockVector(pos[0], pos[1], pos[2]);
             blockToCluster.put(key, p.getInt("cluster_id"));
+            blockOriginal.put(key, blockId);
             double os = p.optDouble("outlier_score", Double.NaN);
             if (!Double.isNaN(os)) {
                 blockOutlier.put(key, os);
@@ -174,7 +179,8 @@ public class SceneRenderer {
                                    Map<Integer, Color> clusterColor,
                                    Map<BlockVector, Integer> blockToCluster,
                                    Map<BlockVector, Double> blockOutlier,
-                                   Map<BlockVector, Map<String, Double>> blockFeatures) {
+                                   Map<BlockVector, Map<String, Double>> blockFeatures,
+                                   Map<BlockVector, String> blockOriginal) {
         if (clusters == null) return 0;
         int placed = 0;
         for (int i = 0; i < clusters.length(); i++) {

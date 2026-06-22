@@ -100,6 +100,29 @@ async def _handle_overview(ws) -> None:
     print(f"[ws_server] overview sent ({len(text)} chars)")
 
 
+async def _handle_query(ws, msg: dict) -> None:
+    if _last_scene is None:
+        await ws.send(json.dumps({"type": "error",
+                                  "message": "no scene loaded; /upload first"}))
+        return
+    question = (msg.get("query") or "").strip()
+    if not question:
+        await ws.send(json.dumps({"type": "error",
+                                  "message": "missing query"}))
+        return
+    try:
+        text = await asyncio.to_thread(gemini.query, _last_scene, question)
+    except Exception as e:
+        traceback.print_exc()
+        await ws.send(json.dumps({"type": "error",
+                                  "message": f"query failed: {e}"}))
+        return
+    await ws.send(json.dumps({"type": "query_answer",
+                              "query": question,
+                              "text": text}))
+    print(f"[ws_server] query {question!r} -> {len(text)} chars")
+
+
 async def _handle_visualize(ws, msg: dict) -> None:
     if _last_scene is None:
         await ws.send(json.dumps({"type": "error",
@@ -142,6 +165,8 @@ async def handle(ws):
                 await _handle_overview(ws)
             elif cmd == "visualize":
                 await _handle_visualize(ws, msg)
+            elif cmd == "query":
+                await _handle_query(ws, msg)
             elif cmd == "ping":
                 await ws.send(json.dumps({"type": "pong"}))
             else:

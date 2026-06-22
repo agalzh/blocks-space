@@ -17,6 +17,7 @@ public class SceneRegistry {
         public final Map<BlockVector, Integer> blockToCluster;
         public final Map<BlockVector, Double> blockOutlier;
         public final Map<BlockVector, Map<String, Double>> blockFeatures;
+        public final Map<BlockVector, String> blockOriginal;
         public final Map<Integer, Vector> clusterMean;
         public final Map<Integer, Integer> clusterSize;
         public final Map<Integer, Color> clusterColor;
@@ -30,6 +31,7 @@ public class SceneRegistry {
                         Map<BlockVector, Integer> blockToCluster,
                         Map<BlockVector, Double> blockOutlier,
                         Map<BlockVector, Map<String, Double>> blockFeatures,
+                        Map<BlockVector, String> blockOriginal,
                         Map<Integer, Vector> clusterMean,
                         Map<Integer, Integer> clusterSize,
                         Map<Integer, Color> clusterColor,
@@ -42,6 +44,7 @@ public class SceneRegistry {
             this.blockToCluster = Collections.unmodifiableMap(blockToCluster);
             this.blockOutlier = Collections.unmodifiableMap(blockOutlier);
             this.blockFeatures = Collections.unmodifiableMap(blockFeatures);
+            this.blockOriginal = Collections.unmodifiableMap(blockOriginal);
             this.clusterMean = Collections.unmodifiableMap(clusterMean);
             this.clusterSize = Collections.unmodifiableMap(clusterSize);
             this.clusterColor = Collections.unmodifiableMap(clusterColor);

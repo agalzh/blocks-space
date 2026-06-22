@@ -4,6 +4,7 @@ import com.unknown.stack.commands.AxesCommand;
 import com.unknown.stack.commands.CenterCommand;
 import com.unknown.stack.commands.LoadMockCommand;
 import com.unknown.stack.commands.OverviewCommand;
+import com.unknown.stack.commands.QueryCommand;
 import com.unknown.stack.commands.ResetCommand;
 import com.unknown.stack.commands.UploadCommand;
 import com.unknown.stack.commands.VisualizeCommand;
@@ -77,6 +78,7 @@ public class StackPlugin extends JavaPlugin implements Listener {
             registerExecutor("upload", new UploadCommand(wsClient));
             registerExecutor("overview", new OverviewCommand(wsClient));
             registerExecutor("visualize", new VisualizeCommand(wsClient));
+            registerExecutor("query", new QueryCommand(wsClient));
             Bukkit.getScheduler().runTaskAsynchronously(this, () -> {
                 getLogger().info("WS connecting to " + wsUrl);
                 wsClient.connect();

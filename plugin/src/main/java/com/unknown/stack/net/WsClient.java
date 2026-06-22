@@ -36,6 +36,7 @@ public class WsClient extends WebSocketClient {
     private final Map<String, CommandSender> pendingByPath = new ConcurrentHashMap<>();
     private volatile CommandSender pendingOverview;
     private volatile CommandSender pendingVisualize;
+    private volatile CommandSender pendingQuery;
 
     public WsClient(JavaPlugin plugin, URI uri, SceneRenderer renderer, ActionExecutor actionExecutor) {
         super(uri);
@@ -89,6 +90,19 @@ public class WsClient extends WebSocketClient {
         feedback.sendMessage("§7asking Gemini: " + query);
     }
 
+    public void sendQuery(String question, CommandSender feedback) {
+        if (!isOpen()) {
+            feedback.sendMessage("§cWS not connected — start the engine: python -m engine.ws_server");
+            return;
+        }
+        pendingQuery = feedback;
+        send(new JSONObject()
+                .put("cmd", "query")
+                .put("query", question)
+                .toString());
+        feedback.sendMessage("§7asking Gemini: §f" + question);
+    }
+
     @Override
     public void onOpen(ServerHandshake handshake) {
         plugin.getLogger().info("WS connected: " + uri);
@@ -109,6 +123,7 @@ public class WsClient extends WebSocketClient {
             case "scene" -> handleScene(msg.getJSONObject("scene"));
             case "overview" -> handleOverview(msg.optString("text", ""));
             case "actions" -> handleActions(msg);
+            case "query_answer" -> handleQueryAnswer(msg);
             case "pong" -> plugin.getLogger().fine("WS pong");
             case "error" -> handleError(msg.optString("message", "(unspecified)"));
             default -> plugin.getLogger().warning("WS unexpected type: " + type);
@@ -189,15 +204,55 @@ public class WsClient extends WebSocketClient {
         });
     }
 
+    private void handleQueryAnswer(JSONObject msg) {
+        CommandSender target = pendingQuery;
+        pendingQuery = null;
+        String question = msg.optString("query", "");
+        String text = sanitizeForChat(msg.optString("text", ""));
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            Bukkit.broadcastMessage("§6§l[Query] §r§f" + truncate(question, 80));
+            if (text.isEmpty()) {
+                Bukkit.broadcastMessage("§e(no answer)");
+            } else {
+                for (String chunk : chunk(text, CHAT_CHUNK_CHARS)) {
+                    Bukkit.broadcastMessage("§f" + chunk);
+                }
+            }
+            if (target != null) target.sendMessage("§7(query answer broadcast)");
+            playOverviewReadySound();
+        });
+    }
+
+    private static String sanitizeForChat(String s) {
+        if (s == null || s.isEmpty()) return "";
+        StringBuilder out = new StringBuilder(s.length());
+        for (String ln : s.split("\\n")) {
+            String t = ln.trim();
+            if (t.isEmpty()) continue;
+            if (t.startsWith("/") || t.startsWith("!") || t.startsWith("@")) continue;
+            if (out.length() > 0) out.append(' ');
+            out.append(t);
+        }
+        return out.toString();
+    }
+
+    private static String truncate(String s, int max) {
+        if (s == null) return "";
+        return s.length() <= max ? s : s.substring(0, max - 1) + "…";
+    }
+
     private void handleError(String detail) {
         plugin.getLogger().warning("WS server error: " + detail);
         CommandSender o = pendingOverview;
         CommandSender v = pendingVisualize;
+        CommandSender q = pendingQuery;
         pendingOverview = null;
         pendingVisualize = null;
+        pendingQuery = null;
         if (o != null) o.sendMessage("§coverview error: " + detail);
         if (v != null) v.sendMessage("§cvisualize error: " + detail);
-        if (o == null && v == null) broadcastFeedback("§cupload error: " + detail);
+        if (q != null) q.sendMessage("§cquery error: " + detail);
+        if (o == null && v == null && q == null) broadcastFeedback("§cupload error: " + detail);
     }
 
     private void broadcastFeedback(String text) {
