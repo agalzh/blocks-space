@@ -1,9 +1,11 @@
 package com.unknown.stack.commands;
 
 import com.unknown.stack.net.WsClient;
+import org.bukkit.Sound;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
 
 public class VisualizeCommand implements CommandExecutor {
 
@@ -21,6 +23,9 @@ public class VisualizeCommand implements CommandExecutor {
         }
         String query = String.join(" ", args).trim();
         ws.sendVisualize(query, sender);
+        if (sender instanceof Player p) {
+            p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_CHIME, 0.5F, 1.1F);
+        }
         return true;
     }
 }

@@ -1,5 +1,6 @@
 package com.unknown.stack.render;
 
+import com.unknown.stack.interact.AxisManager;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -8,7 +9,9 @@ import org.bukkit.util.Vector;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
 
@@ -33,10 +36,15 @@ public class SceneRenderer {
 
     private final Logger log;
     private final SceneRegistry registry;
+    private AxisManager axisManager;
 
     public SceneRenderer(Logger log, SceneRegistry registry) {
         this.log = log;
         this.registry = registry;
+    }
+
+    public void setAxisManager(AxisManager axisManager) {
+        this.axisManager = axisManager;
     }
 
     public Result render(JSONObject scene, World world) {
@@ -47,17 +55,25 @@ public class SceneRenderer {
 
         Map<BlockVector, Integer> blockToCluster = new HashMap<>();
         Map<BlockVector, Double> blockOutlier = new HashMap<>();
+        Map<BlockVector, Map<String, Double>> blockFeatures = new HashMap<>();
         int[] pointStats = renderPoints(world, scene.optJSONArray("points"), bounds,
-                blockToCluster, blockOutlier);
+                blockToCluster, blockOutlier, blockFeatures);
 
         Map<Integer, Vector> clusterMean = new HashMap<>();
         Map<Integer, Integer> clusterSize = new HashMap<>();
         int means = renderClusterMeans(world, scene.optJSONArray("clusters"), bounds,
-                clusterMean, clusterSize, blockToCluster);
+                clusterMean, clusterSize, blockToCluster, blockOutlier, blockFeatures);
 
         Vector centroid = readCentroid(scene);
         placeCentroidMarker(world, centroid, bounds);
+        if (centroid != null) {
+            BlockVector cKey = new BlockVector(centroid.getBlockX(), centroid.getBlockY(), centroid.getBlockZ());
+            blockToCluster.remove(cKey);
+            blockOutlier.remove(cKey);
+            blockFeatures.remove(cKey);
+        }
 
+        List<String> featureNames = extractFeatureNames(scene);
         String name = "?";
         int totalPoints = 0;
         JSONObject ds = scene.optJSONObject("dataset");
@@ -68,9 +84,10 @@ public class SceneRenderer {
             totalPoints = pointStats[0] + pointStats[1];
         }
 
-        registry.set(new SceneRegistry.Snapshot(bounds, blockToCluster, blockOutlier,
+        registry.set(new SceneRegistry.Snapshot(bounds, blockToCluster, blockOutlier, blockFeatures,
                 clusterMean, clusterSize, centroid, name, totalPoints,
-                SceneRegistry.OUTLIER_THRESHOLD));
+                SceneRegistry.OUTLIER_THRESHOLD, featureNames));
+        if (axisManager != null) axisManager.clearTracking();
         return new Result(pointStats[0], means, pointStats[1], name);
     }
 
@@ -89,6 +106,19 @@ public class SceneRenderer {
         return new Vector(p[0], p[1], p[2]);
     }
 
+    private static List<String> extractFeatureNames(JSONObject scene) {
+        List<String> out = new ArrayList<>();
+        JSONArray points = scene.optJSONArray("points");
+        if (points == null || points.length() == 0) return out;
+        JSONObject p0 = points.getJSONObject(0);
+        JSONObject meta = p0.optJSONObject("meta");
+        if (meta == null) return out;
+        JSONObject row = meta.optJSONObject("original_row");
+        if (row == null) return out;
+        for (String k : row.keySet()) out.add(k);
+        return out;
+    }
+
     private static int[] readCoord(JSONArray a) {
         return new int[] { a.getInt(0), a.getInt(1), a.getInt(2) };
     }
@@ -102,7 +132,8 @@ public class SceneRenderer {
 
     private int[] renderPoints(World world, JSONArray points, int[][] bounds,
                                Map<BlockVector, Integer> blockToCluster,
-                               Map<BlockVector, Double> blockOutlier) {
+                               Map<BlockVector, Double> blockOutlier,
+                               Map<BlockVector, Map<String, Double>> blockFeatures) {
         if (points == null) return new int[] {0, 0};
         int placed = 0, skipped = 0;
         for (int i = 0; i < points.length(); i++) {
@@ -118,6 +149,17 @@ public class SceneRenderer {
             if (!Double.isNaN(os)) {
                 blockOutlier.put(key, os);
             }
+            JSONObject meta = p.optJSONObject("meta");
+            if (meta != null) {
+                JSONObject row = meta.optJSONObject("original_row");
+                if (row != null) {
+                    Map<String, Double> feats = new HashMap<>();
+                    for (String k : row.keySet()) {
+                        feats.put(k, row.optDouble(k, Double.NaN));
+                    }
+                    blockFeatures.put(key, feats);
+                }
+            }
             placed++;
         }
         return new int[] {placed, skipped};
@@ -126,7 +168,9 @@ public class SceneRenderer {
     private int renderClusterMeans(World world, JSONArray clusters, int[][] bounds,
                                    Map<Integer, Vector> clusterMean,
                                    Map<Integer, Integer> clusterSize,
-                                   Map<BlockVector, Integer> blockToCluster) {
+                                   Map<BlockVector, Integer> blockToCluster,
+                                   Map<BlockVector, Double> blockOutlier,
+                                   Map<BlockVector, Map<String, Double>> blockFeatures) {
         if (clusters == null) return 0;
         int placed = 0;
         for (int i = 0; i < clusters.length(); i++) {
@@ -145,7 +189,11 @@ public class SceneRenderer {
             int[] pos = readCoord(c.getJSONArray("mean"));
             if (!withinBounds(pos, bounds)) continue;
             world.getBlockAt(pos[0], pos[1], pos[2]).setType(CLUSTER_MEAN_MATERIAL, false);
+            BlockVector meanKey = new BlockVector(pos[0], pos[1], pos[2]);
             clusterMean.put(id, new Vector(pos[0], pos[1], pos[2]));
+            blockToCluster.remove(meanKey);
+            blockOutlier.remove(meanKey);
+            blockFeatures.remove(meanKey);
             placed++;
         }
         return placed;

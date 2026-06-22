@@ -1,8 +1,10 @@
 package com.unknown.stack.commands;
 
+import com.unknown.stack.interact.AxisManager;
 import com.unknown.stack.render.SceneRegistry;
 import com.unknown.stack.render.SceneRenderer;
 import org.bukkit.Material;
+import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -18,11 +20,13 @@ public class ResetCommand implements CommandExecutor {
 
     private final JavaPlugin plugin;
     private final SceneRegistry registry;
+    private final AxisManager axes;
     private volatile boolean running = false;
 
-    public ResetCommand(JavaPlugin plugin, SceneRegistry registry) {
+    public ResetCommand(JavaPlugin plugin, SceneRegistry registry, AxisManager axes) {
         this.plugin = plugin;
         this.registry = registry;
+        this.axes = axes;
     }
 
     @Override
@@ -99,6 +103,7 @@ public class ResetCommand implements CommandExecutor {
             cancel();
             running = false;
             registry.clear();
+            if (axes != null) axes.clearTracking();
             for (int dx = -3; dx <= 3; dx++) {
                 for (int dz = -3; dz <= 3; dz++) {
                     world.getBlockAt(dx, 64, dz).setType(Material.GLASS, false);
@@ -106,6 +111,9 @@ public class ResetCommand implements CommandExecutor {
             }
             feedback.sendMessage("§areset done: cleared " + cleared + " blocks");
             plugin.getLogger().info("reset OK cleared=" + cleared);
+            if (feedback instanceof Player p) {
+                p.playSound(p.getLocation(), Sound.BLOCK_BEACON_DEACTIVATE, 0.5F, 1.0F);
+            }
         }
     }
 }

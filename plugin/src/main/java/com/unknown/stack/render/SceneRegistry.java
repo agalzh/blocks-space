@@ -4,6 +4,7 @@ import org.bukkit.util.BlockVector;
 import org.bukkit.util.Vector;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 public class SceneRegistry {
@@ -14,31 +15,37 @@ public class SceneRegistry {
         public final int[][] bounds;
         public final Map<BlockVector, Integer> blockToCluster;
         public final Map<BlockVector, Double> blockOutlier;
+        public final Map<BlockVector, Map<String, Double>> blockFeatures;
         public final Map<Integer, Vector> clusterMean;
         public final Map<Integer, Integer> clusterSize;
         public final Vector globalCentroid;
         public final String datasetName;
         public final int totalPoints;
         public final double outlierThreshold;
+        public final List<String> featureNames;
 
         public Snapshot(int[][] bounds,
                         Map<BlockVector, Integer> blockToCluster,
                         Map<BlockVector, Double> blockOutlier,
+                        Map<BlockVector, Map<String, Double>> blockFeatures,
                         Map<Integer, Vector> clusterMean,
                         Map<Integer, Integer> clusterSize,
                         Vector globalCentroid,
                         String datasetName,
                         int totalPoints,
-                        double outlierThreshold) {
+                        double outlierThreshold,
+                        List<String> featureNames) {
             this.bounds = bounds;
             this.blockToCluster = Collections.unmodifiableMap(blockToCluster);
             this.blockOutlier = Collections.unmodifiableMap(blockOutlier);
+            this.blockFeatures = Collections.unmodifiableMap(blockFeatures);
             this.clusterMean = Collections.unmodifiableMap(clusterMean);
             this.clusterSize = Collections.unmodifiableMap(clusterSize);
             this.globalCentroid = globalCentroid;
             this.datasetName = datasetName;
             this.totalPoints = totalPoints;
             this.outlierThreshold = outlierThreshold;
+            this.featureNames = Collections.unmodifiableList(featureNames);
         }
     }
 

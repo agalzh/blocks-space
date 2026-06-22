@@ -3,7 +3,10 @@ package com.unknown.stack.net;
 import com.unknown.stack.interact.ActionExecutor;
 import com.unknown.stack.render.SceneRenderer;
 import org.bukkit.Bukkit;
+import org.bukkit.Sound;
+import org.bukkit.World;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
@@ -124,11 +127,32 @@ public class WsClient extends WebSocketClient {
                         "ws scene OK name=%s points=%d means=%d skipped=%d",
                         dsName, r.pointsPlaced, r.means, r.skipped));
                 broadcastFeedback(text);
+                playSceneReadySound();
             } catch (RuntimeException e) {
                 plugin.getLogger().log(Level.WARNING, "ws render failed", e);
                 broadcastFeedback("§cupload render failed: " + e.getMessage());
             }
         });
+    }
+
+    private void playSceneReadySound() {
+        World world = SceneRenderer.defaultWorld();
+        if (world == null) return;
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            p.playSound(p.getLocation(), Sound.BLOCK_BEACON_ACTIVATE, 0.45F, 1.0F);
+        }
+    }
+
+    private void playOverviewReadySound() {
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            p.playSound(p.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 0.5F, 1.2F);
+        }
+    }
+
+    private void playVisualizeReadySound() {
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            p.playSound(p.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_CHIME, 0.5F, 1.0F);
+        }
     }
 
     private void handleOverview(String text) {
@@ -140,6 +164,7 @@ public class WsClient extends WebSocketClient {
                 Bukkit.broadcastMessage("§f" + chunk);
             }
             if (target != null) target.sendMessage("§7(overview broadcast)");
+            playOverviewReadySound();
         });
     }
 
@@ -160,6 +185,7 @@ public class WsClient extends WebSocketClient {
                 return;
             }
             actionExecutor.apply(actions, query, feedback);
+            playVisualizeReadySound();
         });
     }
 

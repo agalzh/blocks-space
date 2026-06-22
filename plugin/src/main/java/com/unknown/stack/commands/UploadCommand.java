@@ -1,9 +1,11 @@
 package com.unknown.stack.commands;
 
 import com.unknown.stack.net.WsClient;
+import org.bukkit.Sound;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
 
 import java.util.Arrays;
 
@@ -22,8 +24,6 @@ public class UploadCommand implements CommandExecutor {
             return true;
         }
 
-        // MC chat splits on spaces; rejoin so paths with spaces survive.
-        // Treat trailing "csv" / "json" token as the format, rest as the path.
         String fmt = "auto";
         int pathEnd = args.length;
         String last = args[args.length - 1].toLowerCase();
@@ -34,6 +34,9 @@ public class UploadCommand implements CommandExecutor {
         String path = String.join(" ", Arrays.copyOfRange(args, 0, pathEnd));
 
         ws.sendUpload(path, fmt, sender);
+        if (sender instanceof Player p) {
+            p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 0.6F, 1.2F);
+        }
         return true;
     }
 }

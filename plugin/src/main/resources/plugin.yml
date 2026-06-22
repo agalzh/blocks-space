@@ -34,6 +34,10 @@ commands:
     description: Teleport above the global centroid for camera shots
     usage: /center
     permission: stackunknown.center
+  axes:
+    description: Toggle the X/Y/Z reference axes through the centroid
+    usage: /axes [show|hide|toggle]
+    permission: stackunknown.axes
 permissions:
   stackunknown.ping:
     description: Allows /ping
@@ -55,4 +59,7 @@ permissions:
     default: op
   stackunknown.center:
     description: Allows /center
+    default: op
+  stackunknown.axes:
+    description: Allows /axes
     default: op

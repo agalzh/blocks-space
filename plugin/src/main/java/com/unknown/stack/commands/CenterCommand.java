@@ -4,6 +4,7 @@ import com.unknown.stack.render.SceneRegistry;
 import com.unknown.stack.render.SceneRenderer;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
+import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -13,9 +14,7 @@ import org.bukkit.util.Vector;
 
 public class CenterCommand implements CommandExecutor {
 
-    private static final int OFFSET_X = 30;
-    private static final int OFFSET_Y = 18;
-    private static final int OFFSET_Z = 30;
+    private static final int OVERHEAD_OFFSET = 25;
 
     private final SceneRegistry registry;
 
@@ -45,17 +44,20 @@ public class CenterCommand implements CommandExecutor {
         double cy = c.getBlockY() + 0.5;
         double cz = c.getBlockZ() + 0.5;
 
-        Location to = new Location(world, cx + OFFSET_X, cy + OFFSET_Y, cz + OFFSET_Z);
-        Vector dir = new Vector(cx - to.getX(), cy - to.getY(), cz - to.getZ());
-        to.setDirection(dir);
+        Location to = new Location(world, cx, cy + OVERHEAD_OFFSET, cz);
+        to.setDirection(new Vector(0.001, -1.0, 0.001));
 
         if (player.getGameMode() == GameMode.SURVIVAL) {
             player.setGameMode(GameMode.SPECTATOR);
+        } else if (player.getGameMode() == GameMode.CREATIVE) {
+            player.setAllowFlight(true);
+            player.setFlying(true);
         }
         player.teleport(to);
+        player.playSound(player.getLocation(), Sound.ENTITY_ENDERMAN_TELEPORT, 0.7F, 1.0F);
         sender.sendMessage(String.format(
-                "§atp to centroid @ (%d, %d, %d)",
-                c.getBlockX(), c.getBlockY(), c.getBlockZ()));
+                "§atp to centroid @ (%d, %d, %d), %d blocks overhead",
+                c.getBlockX(), c.getBlockY(), c.getBlockZ(), OVERHEAD_OFFSET));
         return true;
     }
 }

@@ -1,5 +1,6 @@
 package com.unknown.stack;
 
+import com.unknown.stack.commands.AxesCommand;
 import com.unknown.stack.commands.CenterCommand;
 import com.unknown.stack.commands.LoadMockCommand;
 import com.unknown.stack.commands.OverviewCommand;
@@ -7,6 +8,7 @@ import com.unknown.stack.commands.ResetCommand;
 import com.unknown.stack.commands.UploadCommand;
 import com.unknown.stack.commands.VisualizeCommand;
 import com.unknown.stack.interact.ActionExecutor;
+import com.unknown.stack.interact.AxisManager;
 import com.unknown.stack.interact.HoverLineTask;
 import com.unknown.stack.interact.SidebarHud;
 import com.unknown.stack.net.WsClient;
@@ -14,12 +16,15 @@ import com.unknown.stack.render.SceneRegistry;
 import com.unknown.stack.render.SceneRenderer;
 import org.bukkit.Bukkit;
 import org.bukkit.GameRule;
+import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.PluginCommand;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -36,17 +41,20 @@ public class StackPlugin extends JavaPlugin implements Listener {
 
     @Override
     public void onEnable() {
-        getLogger().info("StackUnknown plugin enabled (phase 4 + hud).");
+        getLogger().info("StackUnknown plugin enabled (phase 6+).");
 
         SceneRegistry registry = new SceneRegistry();
         SceneRenderer renderer = new SceneRenderer(getLogger(), registry);
+        AxisManager axes = new AxisManager(registry);
+        renderer.setAxisManager(axes);
         hud = new SidebarHud();
 
         registerExecutor("loadmock", new LoadMockCommand(this, renderer));
-        registerExecutor("reset", new ResetCommand(this, registry));
+        registerExecutor("reset", new ResetCommand(this, registry, axes));
         registerExecutor("center", new CenterCommand(registry));
+        registerExecutor("axes", new AxesCommand(axes));
 
-        HoverLineTask.start(this, registry, hud);
+        HoverLineTask.start(this, registry, hud, axes);
 
         getServer().getPluginManager().registerEvents(this, this);
 
@@ -91,6 +99,19 @@ public class StackPlugin extends JavaPlugin implements Listener {
             return;
         }
         c.setExecutor(exec);
+    }
+
+    @EventHandler
+    public void onJoin(PlayerJoinEvent e) {
+        Player p = e.getPlayer();
+        Bukkit.getScheduler().runTaskLater(this, () -> {
+            p.sendTitle(
+                    "§6§lStack Unknown",
+                    "§7data viewer  ·  try §e/upload <path>",
+                    10, 70, 20);
+            p.playSound(p.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_CHIME, 0.6F, 0.9F);
+            p.sendMessage("§7Commands: §e/upload §7/§e center §7/§e overview §7/§e visualize §7/§e axes §7/§e reset");
+        }, 20L);
     }
 
     @EventHandler

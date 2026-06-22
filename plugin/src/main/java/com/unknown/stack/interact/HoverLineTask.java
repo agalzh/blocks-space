@@ -21,22 +21,27 @@ public class HoverLineTask extends BukkitRunnable {
     private static final int TARGET_RANGE = 50;
     private static final double STEP = 0.4;
     private static final long PERIOD_TICKS = 5L;
+    private static final int FEATURE_LINES = 3;
+    private static final int FEATURE_HUD_LIMIT = 8;
 
     private final JavaPlugin plugin;
     private final SceneRegistry registry;
     private final SidebarHud hud;
+    private final AxisManager axes;
 
     private final Particle.DustOptions clusterDust =
             new Particle.DustOptions(Color.fromRGB(0xFFAA00), 1.0F);
 
-    public HoverLineTask(JavaPlugin plugin, SceneRegistry registry, SidebarHud hud) {
+    public HoverLineTask(JavaPlugin plugin, SceneRegistry registry, SidebarHud hud, AxisManager axes) {
         this.plugin = plugin;
         this.registry = registry;
         this.hud = hud;
+        this.axes = axes;
     }
 
-    public static HoverLineTask start(JavaPlugin plugin, SceneRegistry registry, SidebarHud hud) {
-        HoverLineTask t = new HoverLineTask(plugin, registry, hud);
+    public static HoverLineTask start(JavaPlugin plugin, SceneRegistry registry,
+                                       SidebarHud hud, AxisManager axes) {
+        HoverLineTask t = new HoverLineTask(plugin, registry, hud, axes);
         t.runTaskTimer(plugin, 20L, PERIOD_TICKS);
         return t;
     }
@@ -66,18 +71,6 @@ public class HoverLineTask extends BukkitRunnable {
             return;
         }
 
-        BlockVector key = new BlockVector(tx, ty, tz);
-        Integer clusterId = snap.blockToCluster.get(key);
-        if (clusterId != null) {
-            Vector mean = snap.clusterMean.get(clusterId);
-            if (mean == null) { hud.hide(player); return; }
-            Vector meanCenter = blockCenter(mean);
-            double dist = targetCenter.distance(meanCenter);
-            showPointHud(player, snap, clusterId, key, dist);
-            drawDustLine(player, targetCenter, meanCenter);
-            return;
-        }
-
         for (Map.Entry<Integer, Vector> e : snap.clusterMean.entrySet()) {
             Vector mean = e.getValue();
             if (mean.getBlockX() == tx && mean.getBlockY() == ty && mean.getBlockZ() == tz) {
@@ -88,6 +81,24 @@ public class HoverLineTask extends BukkitRunnable {
                 drawEndRodLine(player, targetCenter, centroidCenter);
                 return;
             }
+        }
+
+        AxisManager.Axis axis = axes != null ? axes.axisAt(tx, ty, tz) : null;
+        if (axis != null) {
+            showAxisHud(player, snap, axis, tx, ty, tz);
+            return;
+        }
+
+        BlockVector key = new BlockVector(tx, ty, tz);
+        Integer clusterId = snap.blockToCluster.get(key);
+        if (clusterId != null) {
+            Vector mean = snap.clusterMean.get(clusterId);
+            if (mean == null) { hud.hide(player); return; }
+            Vector meanCenter = blockCenter(mean);
+            double dist = targetCenter.distance(meanCenter);
+            showPointHud(player, snap, clusterId, key, dist);
+            drawDustLine(player, targetCenter, meanCenter);
+            return;
         }
 
         hud.hide(player);
@@ -107,6 +118,18 @@ public class HoverLineTask extends BukkitRunnable {
         }
         Integer cs = snap.clusterSize.get(clusterId);
         if (cs != null) L.add(ChatColor.YELLOW + "Cluster size: " + ChatColor.WHITE + cs);
+
+        Map<String, Double> feats = snap.blockFeatures.get(pos);
+        if (feats != null && snap.featureNames.size() <= FEATURE_HUD_LIMIT) {
+            int shown = 0;
+            for (String name : snap.featureNames) {
+                if (shown >= FEATURE_LINES) break;
+                Double v = feats.get(name);
+                if (v == null || Double.isNaN(v)) continue;
+                L.add(ChatColor.AQUA + abbreviate(name, 14) + ": " + ChatColor.WHITE + fmt(v));
+                shown++;
+            }
+        }
         hud.update(p, L);
     }
 
@@ -127,6 +150,39 @@ public class HoverLineTask extends BukkitRunnable {
         L.add(ChatColor.YELLOW + "Clusters: " + ChatColor.WHITE + snap.clusterMean.size());
         L.add(ChatColor.YELLOW + "Points: " + ChatColor.WHITE + snap.totalPoints);
         L.add(ChatColor.YELLOW + "Outlier cutoff: " + ChatColor.WHITE + fmt(snap.outlierThreshold));
+        if (!snap.featureNames.isEmpty()) {
+            L.add(ChatColor.AQUA + "Features: " + ChatColor.WHITE + snap.featureNames.size());
+        }
+        hud.update(p, L);
+    }
+
+    private void showAxisHud(Player p, SceneRegistry.Snapshot snap, AxisManager.Axis axis,
+                              int x, int y, int z) {
+        List<String> L = new ArrayList<>();
+        L.add(ChatColor.GOLD + "Axis " + axis.label
+                + ChatColor.GRAY + " (projection)");
+        Vector c = snap.globalCentroid;
+        if (c != null) {
+            int delta = switch (axis) {
+                case X -> x - c.getBlockX();
+                case Y -> y - c.getBlockY();
+                case Z -> z - c.getBlockZ();
+            };
+            L.add(ChatColor.YELLOW + "Offset: " + ChatColor.WHITE + (delta >= 0 ? "+" : "") + delta + " b");
+        }
+        L.add(ChatColor.YELLOW + "Bounds: " + ChatColor.WHITE
+                + snap.bounds[0][axis.ordinal()] + " → " + snap.bounds[1][axis.ordinal()]);
+        L.add(ChatColor.YELLOW + "Dataset: " + ChatColor.WHITE + snap.datasetName);
+        L.add(ChatColor.YELLOW + "Dims: " + ChatColor.WHITE + snap.featureNames.size());
+        int shown = 0;
+        for (String name : snap.featureNames) {
+            if (shown >= 3) break;
+            L.add(ChatColor.AQUA + "· " + abbreviate(name, 18));
+            shown++;
+        }
+        if (snap.featureNames.size() > shown) {
+            L.add(ChatColor.GRAY + "+ " + (snap.featureNames.size() - shown) + " more");
+        }
         hud.update(p, L);
     }
 
@@ -147,6 +203,11 @@ public class HoverLineTask extends BukkitRunnable {
 
     private static String fmt(double d) {
         return String.format("%.2f", d);
+    }
+
+    private static String abbreviate(String s, int max) {
+        if (s == null) return "";
+        return s.length() <= max ? s : s.substring(0, max - 1) + "…";
     }
 
     private void drawDustLine(Player viewer, Vector a, Vector b) {
