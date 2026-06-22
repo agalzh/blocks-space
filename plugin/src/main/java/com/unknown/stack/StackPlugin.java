@@ -9,12 +9,14 @@ import com.unknown.stack.commands.ResetCommand;
 import com.unknown.stack.commands.UploadCommand;
 import com.unknown.stack.commands.VisualizeCommand;
 import com.unknown.stack.interact.ActionExecutor;
+import com.unknown.stack.interact.AmbienceTask;
 import com.unknown.stack.interact.AxisLineTask;
 import com.unknown.stack.interact.AxisManager;
 import com.unknown.stack.interact.HoverLineTask;
 import com.unknown.stack.interact.NameplateManager;
 import com.unknown.stack.interact.SidebarHud;
 import com.unknown.stack.interact.SpawnPlatform;
+import com.unknown.stack.interact.WorldDecor;
 import com.unknown.stack.net.WsClient;
 import com.unknown.stack.render.SceneRegistry;
 import com.unknown.stack.render.SceneRenderer;
@@ -38,7 +40,7 @@ import java.net.URISyntaxException;
 public class StackPlugin extends JavaPlugin implements Listener {
 
     private static final String DEFAULT_WS_URL = "ws://host.docker.internal:8765";
-    private static final long NOON_TICKS = 6000L;
+    private static final long MIDNIGHT_TICKS = 18000L;
 
     private WsClient wsClient;
     private SidebarHud hud;
@@ -62,12 +64,15 @@ public class StackPlugin extends JavaPlugin implements Listener {
 
         HoverLineTask.start(this, registry, hud, nameplate, axes);
         AxisLineTask.start(this, registry, axes);
+        AmbienceTask.start(this);
 
         getServer().getPluginManager().registerEvents(this, this);
 
         Bukkit.getScheduler().runTaskLater(this, () -> {
-            freezeNoon();
-            SpawnPlatform.build(SceneRenderer.defaultWorld());
+            freezeNight();
+            World world = SceneRenderer.defaultWorld();
+            SpawnPlatform.build(world);
+            WorldDecor.build(world);
         }, 20L);
 
         ActionExecutor actionExecutor = new ActionExecutor(this, registry);
@@ -88,17 +93,19 @@ public class StackPlugin extends JavaPlugin implements Listener {
         }
     }
 
-    private void freezeNoon() {
+    private void freezeNight() {
         for (World w : Bukkit.getWorlds()) {
             try {
                 w.setGameRule(GameRule.DO_DAYLIGHT_CYCLE, false);
                 w.setGameRule(GameRule.DO_WEATHER_CYCLE, false);
-                w.setTime(NOON_TICKS);
+                w.setGameRule(GameRule.DO_MOB_SPAWNING, false);
+                w.setGameRule(GameRule.DO_INSOMNIA, false);
+                w.setTime(MIDNIGHT_TICKS);
                 w.setStorm(false);
                 w.setThundering(false);
-                getLogger().info("World '" + w.getName() + "' frozen at noon");
+                getLogger().info("World '" + w.getName() + "' frozen at midnight");
             } catch (RuntimeException e) {
-                getLogger().warning("freezeNoon failed for " + w.getName() + ": " + e.getMessage());
+                getLogger().warning("freezeNight failed for " + w.getName() + ": " + e.getMessage());
             }
         }
     }
