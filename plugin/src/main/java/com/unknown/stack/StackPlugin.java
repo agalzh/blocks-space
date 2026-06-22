@@ -40,7 +40,7 @@ import java.net.URISyntaxException;
 public class StackPlugin extends JavaPlugin implements Listener {
 
     private static final String DEFAULT_WS_URL = "ws://host.docker.internal:8765";
-    private static final long MIDNIGHT_TICKS = 18000L;
+    private static final long DUSK_TICKS = 13500L;
 
     private WsClient wsClient;
     private SidebarHud hud;
@@ -69,7 +69,7 @@ public class StackPlugin extends JavaPlugin implements Listener {
         getServer().getPluginManager().registerEvents(this, this);
 
         Bukkit.getScheduler().runTaskLater(this, () -> {
-            freezeNight();
+            freezeDusk();
             World world = SceneRenderer.defaultWorld();
             SpawnPlatform.build(world);
             WorldDecor.build(world);
@@ -93,19 +93,19 @@ public class StackPlugin extends JavaPlugin implements Listener {
         }
     }
 
-    private void freezeNight() {
+    private void freezeDusk() {
         for (World w : Bukkit.getWorlds()) {
             try {
                 w.setGameRule(GameRule.DO_DAYLIGHT_CYCLE, false);
                 w.setGameRule(GameRule.DO_WEATHER_CYCLE, false);
                 w.setGameRule(GameRule.DO_MOB_SPAWNING, false);
                 w.setGameRule(GameRule.DO_INSOMNIA, false);
-                w.setTime(MIDNIGHT_TICKS);
+                w.setTime(DUSK_TICKS);
                 w.setStorm(false);
                 w.setThundering(false);
-                getLogger().info("World '" + w.getName() + "' frozen at midnight");
+                getLogger().info("World '" + w.getName() + "' frozen at dusk");
             } catch (RuntimeException e) {
-                getLogger().warning("freezeNight failed for " + w.getName() + ": " + e.getMessage());
+                getLogger().warning("freezeDusk failed for " + w.getName() + ": " + e.getMessage());
             }
         }
     }

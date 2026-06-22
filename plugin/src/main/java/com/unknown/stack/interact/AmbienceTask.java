@@ -24,9 +24,11 @@ public class AmbienceTask extends BukkitRunnable {
         World w = SceneRenderer.defaultWorld();
         if (w == null) return;
 
+        int sx = SpawnPlatform.SPAWN_CX;
+        int sz = SpawnPlatform.SPAWN_CZ;
         for (int i = 0; i < 4; i++) {
-            double x = -4.5 + rng.nextDouble() * 9.0;
-            double z = -4.5 + rng.nextDouble() * 9.0;
+            double x = sx - 4.5 + rng.nextDouble() * 9.0;
+            double z = sz - 4.5 + rng.nextDouble() * 9.0;
             double y = 64.5 + rng.nextDouble() * 4.0;
             w.spawnParticle(Particle.END_ROD, x, y, z, 1, 0.05, 0.05, 0.05, 0.005);
         }
@@ -37,17 +39,6 @@ public class AmbienceTask extends BukkitRunnable {
             double z = c[1] + 0.5 + (rng.nextDouble() - 0.5) * 1.2;
             double y = 65 + rng.nextDouble() * 5;
             w.spawnParticle(Particle.SOUL_FIRE_FLAME, x, y, z, 1, 0.05, 0.05, 0.05, 0.005);
-        }
-
-        if (rng.nextInt(4) == 0) {
-            int[][] islands = {{64, 75, -80}, {64, 75, 208}, {-80, 75, 64}, {208, 75, 64}};
-            int[] pick = islands[rng.nextInt(islands.length)];
-            for (int i = 0; i < 2; i++) {
-                double x = pick[0] + (rng.nextDouble() - 0.5) * 6;
-                double y = pick[1] + 1 + rng.nextDouble() * 4;
-                double z = pick[2] + (rng.nextDouble() - 0.5) * 6;
-                w.spawnParticle(Particle.END_ROD, x, y, z, 1, 0.05, 0.05, 0.05, 0.003);
-            }
         }
     }
 }

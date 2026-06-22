@@ -6,6 +6,10 @@ import org.bukkit.World;
 
 public final class SpawnPlatform {
 
+    public static final int SPAWN_CX = 64;
+    public static final int SPAWN_CZ = -25;
+    public static final int STAND_Y = 64;
+
     private SpawnPlatform() {}
 
     private static final Material[] FLOWER_MIX = {
@@ -20,6 +24,7 @@ public final class SpawnPlatform {
         if (w == null) return;
 
         clearArea(w, -6, 62, -6, 6, 70, 6);
+        clearArea(w, SPAWN_CX - 6, 61, SPAWN_CZ - 6, SPAWN_CX + 6, 70, SPAWN_CZ + 6);
 
         int flowerIdx = 0;
         for (int dx = -5; dx <= 5; dx++) {
@@ -27,15 +32,18 @@ public final class SpawnPlatform {
                 double r = Math.hypot(dx, dz);
                 if (r > 5.3) continue;
 
-                w.getBlockAt(dx, 62, dz).setType(Material.DIRT, false);
+                int wx = SPAWN_CX + dx;
+                int wz = SPAWN_CZ + dz;
+
+                w.getBlockAt(wx, 62, wz).setType(Material.DIRT, false);
 
                 boolean isInnerDeck = Math.abs(dx) <= 2 && Math.abs(dz) <= 2;
                 Material top = isInnerDeck ? Material.OAK_PLANKS : Material.GRASS_BLOCK;
-                w.getBlockAt(dx, 63, dz).setType(top, false);
+                w.getBlockAt(wx, 63, wz).setType(top, false);
 
                 if (!isInnerDeck && r >= 3.2 && r <= 5.3) {
                     if (((dx + dz + 10) % 2) == 0 && !isReserved(dx, dz)) {
-                        w.getBlockAt(dx, 64, dz).setType(FLOWER_MIX[flowerIdx % FLOWER_MIX.length], false);
+                        w.getBlockAt(wx, 64, wz).setType(FLOWER_MIX[flowerIdx % FLOWER_MIX.length], false);
                         flowerIdx++;
                     }
                 }
@@ -44,29 +52,35 @@ public final class SpawnPlatform {
 
         int[][] pond = {{-3, -3}, {-3, -4}, {-4, -3}};
         for (int[] p : pond) {
-            w.getBlockAt(p[0], 63, p[1]).setType(Material.WATER, false);
-            w.getBlockAt(p[0], 64, p[1]).setType(Material.AIR, false);
+            int wx = SPAWN_CX + p[0];
+            int wz = SPAWN_CZ + p[1];
+            w.getBlockAt(wx, 63, wz).setType(Material.WATER, false);
+            w.getBlockAt(wx, 64, wz).setType(Material.AIR, false);
         }
 
-        placeOakTree(w, 3, 64, 3);
-        placeCherryTree(w, -2, 64, 4);
+        placeOakTree(w, SPAWN_CX + 3, 64, SPAWN_CZ + 3);
+        placeCherryTree(w, SPAWN_CX - 2, 64, SPAWN_CZ + 4);
 
         int[][] lampSpots = {{-5, 0}, {5, 0}, {0, -5}, {0, 5}};
         for (int[] s : lampSpots) {
-            w.getBlockAt(s[0], 63, s[1]).setType(Material.MOSS_BLOCK, false);
-            w.getBlockAt(s[0], 64, s[1]).setType(Material.POLISHED_BLACKSTONE_WALL, false);
-            w.getBlockAt(s[0], 65, s[1]).setType(Material.POLISHED_BLACKSTONE_WALL, false);
-            w.getBlockAt(s[0], 66, s[1]).setType(Material.SOUL_LANTERN, false);
+            int wx = SPAWN_CX + s[0];
+            int wz = SPAWN_CZ + s[1];
+            w.getBlockAt(wx, 63, wz).setType(Material.MOSS_BLOCK, false);
+            w.getBlockAt(wx, 64, wz).setType(Material.POLISHED_BLACKSTONE_WALL, false);
+            w.getBlockAt(wx, 65, wz).setType(Material.POLISHED_BLACKSTONE_WALL, false);
+            w.getBlockAt(wx, 66, wz).setType(Material.SOUL_LANTERN, false);
         }
 
         for (int dx = -2; dx <= 2; dx++) {
             for (int dz = -2; dz <= 2; dz++) {
-                w.getBlockAt(dx, 64, dz).setType(Material.AIR, false);
-                w.getBlockAt(dx, 65, dz).setType(Material.AIR, false);
+                int wx = SPAWN_CX + dx;
+                int wz = SPAWN_CZ + dz;
+                w.getBlockAt(wx, 64, wz).setType(Material.AIR, false);
+                w.getBlockAt(wx, 65, wz).setType(Material.AIR, false);
             }
         }
 
-        w.setSpawnLocation(new Location(w, 0.5, 64, 0.5));
+        w.setSpawnLocation(new Location(w, SPAWN_CX + 0.5, STAND_Y, SPAWN_CZ + 0.5));
     }
 
     private static boolean isReserved(int dx, int dz) {
