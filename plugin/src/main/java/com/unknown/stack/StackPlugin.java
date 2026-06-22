@@ -59,7 +59,7 @@ public class StackPlugin extends JavaPlugin implements Listener {
         registerExecutor("center", new CenterCommand(registry));
         registerExecutor("axes", new AxesCommand(axes));
 
-        HoverLineTask.start(this, registry, hud, nameplate);
+        HoverLineTask.start(this, registry, hud, nameplate, axes);
         AxisLineTask.start(this, registry, axes);
 
         getServer().getPluginManager().registerEvents(this, this);

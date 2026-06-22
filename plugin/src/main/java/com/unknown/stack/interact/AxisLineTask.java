@@ -10,15 +10,15 @@ import org.bukkit.scheduler.BukkitRunnable;
 
 public class AxisLineTask extends BukkitRunnable {
 
-    private static final int STEP = 2;
-    private static final long PERIOD_TICKS = 10L;
+    private static final int STEP = 1;
+    private static final long PERIOD_TICKS = 5L;
 
     private final SceneRegistry registry;
     private final AxisManager axes;
 
-    private final Particle.DustOptions xDust = new Particle.DustOptions(Color.fromRGB(0xFF5A55), 0.6F);
-    private final Particle.DustOptions yDust = new Particle.DustOptions(Color.fromRGB(0x7CE055), 0.6F);
-    private final Particle.DustOptions zDust = new Particle.DustOptions(Color.fromRGB(0x6AA0FF), 0.6F);
+    private final Particle.DustOptions xDust = new Particle.DustOptions(Color.fromRGB(0xFF1818), 1.4F);
+    private final Particle.DustOptions yDust = new Particle.DustOptions(Color.fromRGB(0x33FF33), 1.4F);
+    private final Particle.DustOptions zDust = new Particle.DustOptions(Color.fromRGB(0x3380FF), 1.4F);
 
     public AxisLineTask(SceneRegistry registry, AxisManager axes) {
         this.registry = registry;

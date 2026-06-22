@@ -30,22 +30,24 @@ public class HoverLineTask extends BukkitRunnable {
     private final SceneRegistry registry;
     private final SidebarHud hud;
     private final NameplateManager nameplate;
+    private final AxisManager axes;
 
     private final Particle.DustOptions fallbackDust =
             new Particle.DustOptions(Color.fromRGB(0xFFAA00), 1.0F);
     private final Map<Integer, Particle.DustOptions> dustCache = new HashMap<>();
 
     public HoverLineTask(JavaPlugin plugin, SceneRegistry registry,
-                         SidebarHud hud, NameplateManager nameplate) {
+                         SidebarHud hud, NameplateManager nameplate, AxisManager axes) {
         this.plugin = plugin;
         this.registry = registry;
         this.hud = hud;
         this.nameplate = nameplate;
+        this.axes = axes;
     }
 
     public static HoverLineTask start(JavaPlugin plugin, SceneRegistry registry,
-                                       SidebarHud hud, NameplateManager nameplate) {
-        HoverLineTask t = new HoverLineTask(plugin, registry, hud, nameplate);
+                                       SidebarHud hud, NameplateManager nameplate, AxisManager axes) {
+        HoverLineTask t = new HoverLineTask(plugin, registry, hud, nameplate, axes);
         t.runTaskTimer(plugin, 20L, PERIOD_TICKS);
         return t;
     }
@@ -87,6 +89,13 @@ public class HoverLineTask extends BukkitRunnable {
                 nameplate.hide(player);
                 return;
             }
+        }
+
+        AxisManager.Axis axis = axes != null ? axes.axisAt(tx, ty, tz) : null;
+        if (axis != null) {
+            showAxisHud(player, snap, axis, tx, ty, tz);
+            nameplate.hide(player);
+            return;
         }
 
         BlockVector key = new BlockVector(tx, ty, tz);
@@ -155,6 +164,41 @@ public class HoverLineTask extends BukkitRunnable {
         L.add(ChatColor.YELLOW + "Dist→centroid: " + ChatColor.WHITE + fmt(dist) + " b");
         Integer cs = snap.clusterSize.get(clusterId);
         if (cs != null) L.add(ChatColor.YELLOW + "Cluster size: " + ChatColor.WHITE + cs);
+        hud.update(p, L);
+    }
+
+    private void showAxisHud(Player p, SceneRegistry.Snapshot snap, AxisManager.Axis axis,
+                              int x, int y, int z) {
+        List<String> L = new ArrayList<>();
+        String tag = switch (axis) {
+            case X -> ChatColor.RED + "Axis X";
+            case Y -> ChatColor.GREEN + "Axis Y";
+            case Z -> ChatColor.BLUE + "Axis Z";
+        };
+        L.add(ChatColor.BOLD + "" + tag + ChatColor.RESET + ChatColor.GRAY + " (projection)");
+        Vector c = snap.globalCentroid;
+        if (c != null) {
+            int delta = switch (axis) {
+                case X -> x - c.getBlockX();
+                case Y -> y - c.getBlockY();
+                case Z -> z - c.getBlockZ();
+            };
+            L.add(ChatColor.YELLOW + "Offset: " + ChatColor.WHITE + (delta >= 0 ? "+" : "") + delta + " b");
+        }
+        int dim = axis.ordinal();
+        L.add(ChatColor.YELLOW + "Span: " + ChatColor.WHITE
+                + snap.bounds[0][dim] + " → " + snap.bounds[1][dim]);
+        L.add(ChatColor.YELLOW + "Dataset: " + ChatColor.WHITE + snap.datasetName);
+        L.add(ChatColor.YELLOW + "Dims: " + ChatColor.WHITE + snap.featureNames.size());
+        int shown = 0;
+        for (String name : snap.featureNames) {
+            if (shown >= 3) break;
+            L.add(ChatColor.AQUA + "· " + abbreviate(name, 18));
+            shown++;
+        }
+        if (snap.featureNames.size() > shown) {
+            L.add(ChatColor.GRAY + "+ " + (snap.featureNames.size() - shown) + " more");
+        }
         hud.update(p, L);
     }
 
