@@ -2,6 +2,7 @@ package com.unknown.stack.render;
 
 import com.unknown.stack.interact.AxisManager;
 import org.bukkit.Bukkit;
+import org.bukkit.Color;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.util.BlockVector;
@@ -61,8 +62,10 @@ public class SceneRenderer {
 
         Map<Integer, Vector> clusterMean = new HashMap<>();
         Map<Integer, Integer> clusterSize = new HashMap<>();
+        Map<Integer, Color> clusterColor = new HashMap<>();
         int means = renderClusterMeans(world, scene.optJSONArray("clusters"), bounds,
-                clusterMean, clusterSize, blockToCluster, blockOutlier, blockFeatures);
+                clusterMean, clusterSize, clusterColor,
+                blockToCluster, blockOutlier, blockFeatures);
 
         Vector centroid = readCentroid(scene);
         placeCentroidMarker(world, centroid, bounds);
@@ -85,7 +88,7 @@ public class SceneRenderer {
         }
 
         registry.set(new SceneRegistry.Snapshot(bounds, blockToCluster, blockOutlier, blockFeatures,
-                clusterMean, clusterSize, centroid, name, totalPoints,
+                clusterMean, clusterSize, clusterColor, centroid, name, totalPoints,
                 SceneRegistry.OUTLIER_THRESHOLD, featureNames));
         if (axisManager != null) axisManager.clearTracking();
         return new Result(pointStats[0], means, pointStats[1], name);
@@ -168,6 +171,7 @@ public class SceneRenderer {
     private int renderClusterMeans(World world, JSONArray clusters, int[][] bounds,
                                    Map<Integer, Vector> clusterMean,
                                    Map<Integer, Integer> clusterSize,
+                                   Map<Integer, Color> clusterColor,
                                    Map<BlockVector, Integer> blockToCluster,
                                    Map<BlockVector, Double> blockOutlier,
                                    Map<BlockVector, Map<String, Double>> blockFeatures) {
@@ -176,6 +180,8 @@ public class SceneRenderer {
         for (int i = 0; i < clusters.length(); i++) {
             JSONObject c = clusters.getJSONObject(i);
             int id = c.getInt("id");
+
+            clusterColor.put(id, materialToColor(c.optString("color", null)));
 
             JSONArray pts = c.optJSONArray("point_ids");
             if (pts != null) {
@@ -212,5 +218,27 @@ public class SceneRenderer {
 
     public static World defaultWorld() {
         return Bukkit.getWorlds().isEmpty() ? null : Bukkit.getWorlds().get(0);
+    }
+
+    public static Color materialToColor(String materialId) {
+        if (materialId == null) return Color.fromRGB(0xFFAA00);
+        String n = materialId.toLowerCase();
+        if (n.contains("red"))         return Color.fromRGB(0xB02E26);
+        if (n.contains("orange"))      return Color.fromRGB(0xF9801D);
+        if (n.contains("yellow"))      return Color.fromRGB(0xFED83D);
+        if (n.contains("lime"))        return Color.fromRGB(0x80C71F);
+        if (n.contains("green"))       return Color.fromRGB(0x5E7C16);
+        if (n.contains("light_blue"))  return Color.fromRGB(0x3AB3DA);
+        if (n.contains("cyan"))        return Color.fromRGB(0x169C9C);
+        if (n.contains("blue"))        return Color.fromRGB(0x3C44AA);
+        if (n.contains("purple"))      return Color.fromRGB(0x8932B8);
+        if (n.contains("magenta"))     return Color.fromRGB(0xC74EBD);
+        if (n.contains("pink"))        return Color.fromRGB(0xF38BAA);
+        if (n.contains("light_gray"))  return Color.fromRGB(0x9D9D97);
+        if (n.contains("gray"))        return Color.fromRGB(0x474F52);
+        if (n.contains("black"))       return Color.fromRGB(0x1D1D21);
+        if (n.contains("white"))       return Color.fromRGB(0xF9FFFE);
+        if (n.contains("brown"))       return Color.fromRGB(0x835432);
+        return Color.fromRGB(0xFFAA00);
     }
 }

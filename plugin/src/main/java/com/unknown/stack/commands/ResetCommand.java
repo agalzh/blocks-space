@@ -1,6 +1,7 @@
 package com.unknown.stack.commands;
 
 import com.unknown.stack.interact.AxisManager;
+import com.unknown.stack.interact.SpawnPlatform;
 import com.unknown.stack.render.SceneRegistry;
 import com.unknown.stack.render.SceneRenderer;
 import org.bukkit.Material;
@@ -104,15 +105,11 @@ public class ResetCommand implements CommandExecutor {
             running = false;
             registry.clear();
             if (axes != null) axes.clearTracking();
-            for (int dx = -3; dx <= 3; dx++) {
-                for (int dz = -3; dz <= 3; dz++) {
-                    world.getBlockAt(dx, 64, dz).setType(Material.GLASS, false);
-                }
-            }
+            SpawnPlatform.build(world);
             feedback.sendMessage("§areset done: cleared " + cleared + " blocks");
             plugin.getLogger().info("reset OK cleared=" + cleared);
             if (feedback instanceof Player p) {
-                p.playSound(p.getLocation(), Sound.BLOCK_BEACON_DEACTIVATE, 0.5F, 1.0F);
+                p.playSound(p.getLocation(), Sound.BLOCK_BEACON_DEACTIVATE, 0.95F, 1.0F);
             }
         }
     }

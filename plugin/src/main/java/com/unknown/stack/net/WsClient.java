@@ -139,19 +139,19 @@ public class WsClient extends WebSocketClient {
         World world = SceneRenderer.defaultWorld();
         if (world == null) return;
         for (Player p : Bukkit.getOnlinePlayers()) {
-            p.playSound(p.getLocation(), Sound.BLOCK_BEACON_ACTIVATE, 0.45F, 1.0F);
+            p.playSound(p.getLocation(), Sound.BLOCK_BEACON_ACTIVATE, 0.95F, 1.0F);
         }
     }
 
     private void playOverviewReadySound() {
         for (Player p : Bukkit.getOnlinePlayers()) {
-            p.playSound(p.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 0.5F, 1.2F);
+            p.playSound(p.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0F, 1.2F);
         }
     }
 
     private void playVisualizeReadySound() {
         for (Player p : Bukkit.getOnlinePlayers()) {
-            p.playSound(p.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_CHIME, 0.5F, 1.0F);
+            p.playSound(p.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_CHIME, 1.0F, 1.0F);
         }
     }
 

@@ -35,7 +35,7 @@ public class UploadCommand implements CommandExecutor {
 
         ws.sendUpload(path, fmt, sender);
         if (sender instanceof Player p) {
-            p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 0.6F, 1.2F);
+            p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 0.95F, 1.2F);
         }
         return true;
     }

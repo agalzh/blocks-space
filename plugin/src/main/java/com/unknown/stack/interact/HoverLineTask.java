@@ -4,6 +4,7 @@ import com.unknown.stack.render.SceneRegistry;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Color;
+import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
@@ -13,6 +14,7 @@ import org.bukkit.util.BlockVector;
 import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -27,21 +29,23 @@ public class HoverLineTask extends BukkitRunnable {
     private final JavaPlugin plugin;
     private final SceneRegistry registry;
     private final SidebarHud hud;
-    private final AxisManager axes;
+    private final NameplateManager nameplate;
 
-    private final Particle.DustOptions clusterDust =
+    private final Particle.DustOptions fallbackDust =
             new Particle.DustOptions(Color.fromRGB(0xFFAA00), 1.0F);
+    private final Map<Integer, Particle.DustOptions> dustCache = new HashMap<>();
 
-    public HoverLineTask(JavaPlugin plugin, SceneRegistry registry, SidebarHud hud, AxisManager axes) {
+    public HoverLineTask(JavaPlugin plugin, SceneRegistry registry,
+                         SidebarHud hud, NameplateManager nameplate) {
         this.plugin = plugin;
         this.registry = registry;
         this.hud = hud;
-        this.axes = axes;
+        this.nameplate = nameplate;
     }
 
     public static HoverLineTask start(JavaPlugin plugin, SceneRegistry registry,
-                                       SidebarHud hud, AxisManager axes) {
-        HoverLineTask t = new HoverLineTask(plugin, registry, hud, axes);
+                                       SidebarHud hud, NameplateManager nameplate) {
+        HoverLineTask t = new HoverLineTask(plugin, registry, hud, nameplate);
         t.runTaskTimer(plugin, 20L, PERIOD_TICKS);
         return t;
     }
@@ -51,7 +55,7 @@ public class HoverLineTask extends BukkitRunnable {
         SceneRegistry.Snapshot snap = registry.get();
         for (Player p : Bukkit.getOnlinePlayers()) {
             try {
-                if (snap == null) { hud.hide(p); continue; }
+                if (snap == null) { hud.hide(p); nameplate.hide(p); continue; }
                 tickPlayer(p, snap);
             } catch (RuntimeException e) {
                 plugin.getLogger().fine("hover tick failed for " + p.getName() + ": " + e.getMessage());
@@ -61,47 +65,58 @@ public class HoverLineTask extends BukkitRunnable {
 
     private void tickPlayer(Player player, SceneRegistry.Snapshot snap) {
         Block target = player.getTargetBlockExact(TARGET_RANGE);
-        if (target == null) { hud.hide(player); return; }
+        if (target == null) { hud.hide(player); nameplate.hide(player); return; }
         int tx = target.getX(), ty = target.getY(), tz = target.getZ();
         Vector targetCenter = new Vector(tx + 0.5, ty + 0.5, tz + 0.5);
 
         if (isCentroidBlock(snap, tx, ty, tz)) {
             showCentroidHud(player, snap);
             drawCentroidSpokes(player, targetCenter, snap);
+            nameplate.hide(player);
             return;
         }
 
         for (Map.Entry<Integer, Vector> e : snap.clusterMean.entrySet()) {
             Vector mean = e.getValue();
             if (mean.getBlockX() == tx && mean.getBlockY() == ty && mean.getBlockZ() == tz) {
-                if (snap.globalCentroid == null) { hud.hide(player); return; }
+                if (snap.globalCentroid == null) { hud.hide(player); nameplate.hide(player); return; }
                 Vector centroidCenter = blockCenter(snap.globalCentroid);
                 double dist = targetCenter.distance(centroidCenter);
                 showMeanHud(player, snap, e.getKey(), dist);
                 drawEndRodLine(player, targetCenter, centroidCenter);
+                nameplate.hide(player);
                 return;
             }
-        }
-
-        AxisManager.Axis axis = axes != null ? axes.axisAt(tx, ty, tz) : null;
-        if (axis != null) {
-            showAxisHud(player, snap, axis, tx, ty, tz);
-            return;
         }
 
         BlockVector key = new BlockVector(tx, ty, tz);
         Integer clusterId = snap.blockToCluster.get(key);
         if (clusterId != null) {
             Vector mean = snap.clusterMean.get(clusterId);
-            if (mean == null) { hud.hide(player); return; }
+            if (mean == null) { hud.hide(player); nameplate.hide(player); return; }
             Vector meanCenter = blockCenter(mean);
             double dist = targetCenter.distance(meanCenter);
             showPointHud(player, snap, clusterId, key, dist);
-            drawDustLine(player, targetCenter, meanCenter);
+            drawClusterDustLine(player, targetCenter, meanCenter, snap.clusterColor.get(clusterId));
+            updateNameplate(player, target.getLocation(), snap, tx, ty, tz);
             return;
         }
 
         hud.hide(player);
+        nameplate.hide(player);
+    }
+
+    private void updateNameplate(Player viewer, Location targetLoc, SceneRegistry.Snapshot snap,
+                                  int tx, int ty, int tz) {
+        Vector c = snap.globalCentroid;
+        if (c == null) { nameplate.hide(viewer); return; }
+        int dx = tx - c.getBlockX();
+        int dy = ty - c.getBlockY();
+        int dz = tz - c.getBlockZ();
+        String text = String.format("§7Δ  §c%+d §7· §a%+d §7· §9%+d", dx, dy, dz);
+        Location at = new Location(targetLoc.getWorld(),
+                tx + 0.5, ty + 1.4, tz + 0.5);
+        nameplate.update(viewer, at, text);
     }
 
     private void showPointHud(Player p, SceneRegistry.Snapshot snap, int clusterId,
@@ -156,36 +171,6 @@ public class HoverLineTask extends BukkitRunnable {
         hud.update(p, L);
     }
 
-    private void showAxisHud(Player p, SceneRegistry.Snapshot snap, AxisManager.Axis axis,
-                              int x, int y, int z) {
-        List<String> L = new ArrayList<>();
-        L.add(ChatColor.GOLD + "Axis " + axis.label
-                + ChatColor.GRAY + " (projection)");
-        Vector c = snap.globalCentroid;
-        if (c != null) {
-            int delta = switch (axis) {
-                case X -> x - c.getBlockX();
-                case Y -> y - c.getBlockY();
-                case Z -> z - c.getBlockZ();
-            };
-            L.add(ChatColor.YELLOW + "Offset: " + ChatColor.WHITE + (delta >= 0 ? "+" : "") + delta + " b");
-        }
-        L.add(ChatColor.YELLOW + "Bounds: " + ChatColor.WHITE
-                + snap.bounds[0][axis.ordinal()] + " → " + snap.bounds[1][axis.ordinal()]);
-        L.add(ChatColor.YELLOW + "Dataset: " + ChatColor.WHITE + snap.datasetName);
-        L.add(ChatColor.YELLOW + "Dims: " + ChatColor.WHITE + snap.featureNames.size());
-        int shown = 0;
-        for (String name : snap.featureNames) {
-            if (shown >= 3) break;
-            L.add(ChatColor.AQUA + "· " + abbreviate(name, 18));
-            shown++;
-        }
-        if (snap.featureNames.size() > shown) {
-            L.add(ChatColor.GRAY + "+ " + (snap.featureNames.size() - shown) + " more");
-        }
-        hud.update(p, L);
-    }
-
     private void drawCentroidSpokes(Player p, Vector centroidCenter, SceneRegistry.Snapshot snap) {
         for (Vector mean : snap.clusterMean.values()) {
             drawEndRodLine(p, centroidCenter, blockCenter(mean));
@@ -210,7 +195,20 @@ public class HoverLineTask extends BukkitRunnable {
         return s.length() <= max ? s : s.substring(0, max - 1) + "…";
     }
 
-    private void drawDustLine(Player viewer, Vector a, Vector b) {
+    private Particle.DustOptions dustFor(Integer clusterId, Color color) {
+        if (clusterId == null) return fallbackDust;
+        Particle.DustOptions cached = dustCache.get(clusterId);
+        if (cached != null) return cached;
+        Color c = color != null ? color : Color.fromRGB(0xFFAA00);
+        Particle.DustOptions opts = new Particle.DustOptions(c, 1.0F);
+        dustCache.put(clusterId, opts);
+        return opts;
+    }
+
+    private void drawClusterDustLine(Player viewer, Vector a, Vector b, Color color) {
+        Particle.DustOptions opts = color != null
+                ? new Particle.DustOptions(color, 1.0F)
+                : fallbackDust;
         Vector d = b.clone().subtract(a);
         double dist = d.length();
         if (dist < 0.001) return;
@@ -221,7 +219,7 @@ public class HoverLineTask extends BukkitRunnable {
             double px = a.getX() + unit.getX() * t;
             double py = a.getY() + unit.getY() * t;
             double pz = a.getZ() + unit.getZ() * t;
-            viewer.spawnParticle(Particle.REDSTONE, px, py, pz, 1, 0, 0, 0, 0, clusterDust);
+            viewer.spawnParticle(Particle.REDSTONE, px, py, pz, 1, 0, 0, 0, 0, opts);
         }
     }
 

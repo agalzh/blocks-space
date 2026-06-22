@@ -1,5 +1,6 @@
 package com.unknown.stack.render;
 
+import org.bukkit.Color;
 import org.bukkit.util.BlockVector;
 import org.bukkit.util.Vector;
 
@@ -18,6 +19,7 @@ public class SceneRegistry {
         public final Map<BlockVector, Map<String, Double>> blockFeatures;
         public final Map<Integer, Vector> clusterMean;
         public final Map<Integer, Integer> clusterSize;
+        public final Map<Integer, Color> clusterColor;
         public final Vector globalCentroid;
         public final String datasetName;
         public final int totalPoints;
@@ -30,6 +32,7 @@ public class SceneRegistry {
                         Map<BlockVector, Map<String, Double>> blockFeatures,
                         Map<Integer, Vector> clusterMean,
                         Map<Integer, Integer> clusterSize,
+                        Map<Integer, Color> clusterColor,
                         Vector globalCentroid,
                         String datasetName,
                         int totalPoints,
@@ -41,6 +44,7 @@ public class SceneRegistry {
             this.blockFeatures = Collections.unmodifiableMap(blockFeatures);
             this.clusterMean = Collections.unmodifiableMap(clusterMean);
             this.clusterSize = Collections.unmodifiableMap(clusterSize);
+            this.clusterColor = Collections.unmodifiableMap(clusterColor);
             this.globalCentroid = globalCentroid;
             this.datasetName = datasetName;
             this.totalPoints = totalPoints;

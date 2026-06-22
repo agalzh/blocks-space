@@ -24,7 +24,7 @@ public class VisualizeCommand implements CommandExecutor {
         String query = String.join(" ", args).trim();
         ws.sendVisualize(query, sender);
         if (sender instanceof Player p) {
-            p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_CHIME, 0.5F, 1.1F);
+            p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_CHIME, 0.95F, 1.1F);
         }
         return true;
     }

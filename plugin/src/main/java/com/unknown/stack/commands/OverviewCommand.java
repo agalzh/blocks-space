@@ -19,7 +19,7 @@ public class OverviewCommand implements CommandExecutor {
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         ws.sendOverview(sender);
         if (sender instanceof Player p) {
-            p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_BELL, 0.5F, 1.4F);
+            p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_BELL, 0.95F, 1.4F);
         }
         return true;
     }

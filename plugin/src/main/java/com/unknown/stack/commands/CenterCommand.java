@@ -54,7 +54,7 @@ public class CenterCommand implements CommandExecutor {
             player.setFlying(true);
         }
         player.teleport(to);
-        player.playSound(player.getLocation(), Sound.ENTITY_ENDERMAN_TELEPORT, 0.7F, 1.0F);
+        player.playSound(player.getLocation(), Sound.ENTITY_ENDERMAN_TELEPORT, 1.0F, 1.0F);
         sender.sendMessage(String.format(
                 "§atp to centroid @ (%d, %d, %d), %d blocks overhead",
                 c.getBlockX(), c.getBlockY(), c.getBlockZ(), OVERHEAD_OFFSET));
