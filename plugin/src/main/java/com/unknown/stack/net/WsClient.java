@@ -37,6 +37,7 @@ public class WsClient extends WebSocketClient {
     private volatile CommandSender pendingOverview;
     private volatile CommandSender pendingVisualize;
     private volatile CommandSender pendingQuery;
+    private volatile CommandSender pendingGeminiInfo;
 
     public WsClient(JavaPlugin plugin, URI uri, SceneRenderer renderer, ActionExecutor actionExecutor) {
         super(uri);
@@ -90,6 +91,15 @@ public class WsClient extends WebSocketClient {
         feedback.sendMessage("§7asking Gemini: " + query);
     }
 
+    public void sendGeminiInfo(CommandSender feedback) {
+        if (!isOpen()) {
+            feedback.sendMessage("§cWS not connected — start the engine: python -m engine.ws_server");
+            return;
+        }
+        pendingGeminiInfo = feedback;
+        send(new JSONObject().put("cmd", "gemini_info").toString());
+    }
+
     public void sendQuery(String question, CommandSender feedback) {
         if (!isOpen()) {
             feedback.sendMessage("§cWS not connected — start the engine: python -m engine.ws_server");
@@ -124,6 +134,7 @@ public class WsClient extends WebSocketClient {
             case "overview" -> handleOverview(msg.optString("text", ""));
             case "actions" -> handleActions(msg);
             case "query_answer" -> handleQueryAnswer(msg);
+            case "gemini_info" -> handleGeminiInfo(msg.optJSONObject("info"));
             case "pong" -> plugin.getLogger().fine("WS pong");
             case "error" -> handleError(msg.optString("message", "(unspecified)"));
             default -> plugin.getLogger().warning("WS unexpected type: " + type);
@@ -241,18 +252,65 @@ public class WsClient extends WebSocketClient {
         return s.length() <= max ? s : s.substring(0, max - 1) + "…";
     }
 
+    private void handleGeminiInfo(JSONObject info) {
+        CommandSender target = pendingGeminiInfo;
+        pendingGeminiInfo = null;
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            CommandSender s = target != null ? target : Bukkit.getConsoleSender();
+            if (info == null) {
+                s.sendMessage("§c/gemini: empty info from engine");
+                return;
+            }
+            String mode = info.optString("mode", "?");
+            String active = info.optString("active_model", "(none)");
+            boolean key = info.optBoolean("key_present", false);
+            String lastErr = info.optString("last_error", "");
+            JSONArray chain = info.optJSONArray("chain");
+            JSONArray avail = info.optJSONArray("available");
+            JSONArray unav = info.optJSONArray("unavailable");
+
+            s.sendMessage("§8§m                                                  ");
+            s.sendMessage("§b§lGemini status");
+            s.sendMessage("§7Mode         §8» " + (mode.equals("gemini") ? "§agemini" : "§efallback heuristics"));
+            s.sendMessage("§7Active model §8» §f" + (active.isEmpty() ? "§c(none)" : active));
+            s.sendMessage("§7API key      §8» " + (key ? "§apresent" : "§cmissing"));
+            s.sendMessage("§7Fallback chain §8» §f" + joinArr(chain));
+            s.sendMessage("§7Available    §8» §a" + joinArr(avail));
+            if (unav != null && unav.length() > 0) {
+                s.sendMessage("§7Unavailable  §8» §c" + joinArr(unav));
+            }
+            if (!lastErr.isEmpty() && !"null".equals(lastErr)) {
+                s.sendMessage("§7Last error   §8» §c" + truncate(lastErr, 120));
+            }
+            s.sendMessage("§8§m                                                  ");
+        });
+    }
+
+    private static String joinArr(JSONArray arr) {
+        if (arr == null || arr.length() == 0) return "(none)";
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < arr.length(); i++) {
+            if (i > 0) sb.append("§7, §f");
+            sb.append(arr.optString(i, "?"));
+        }
+        return sb.toString();
+    }
+
     private void handleError(String detail) {
         plugin.getLogger().warning("WS server error: " + detail);
         CommandSender o = pendingOverview;
         CommandSender v = pendingVisualize;
         CommandSender q = pendingQuery;
+        CommandSender g = pendingGeminiInfo;
         pendingOverview = null;
         pendingVisualize = null;
         pendingQuery = null;
+        pendingGeminiInfo = null;
         if (o != null) o.sendMessage("§coverview error: " + detail);
         if (v != null) v.sendMessage("§cvisualize error: " + detail);
         if (q != null) q.sendMessage("§cquery error: " + detail);
-        if (o == null && v == null && q == null) broadcastFeedback("§cupload error: " + detail);
+        if (g != null) g.sendMessage("§c/gemini error: " + detail);
+        if (o == null && v == null && q == null && g == null) broadcastFeedback("§cupload error: " + detail);
     }
 
     private void broadcastFeedback(String text) {

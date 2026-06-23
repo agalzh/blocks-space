@@ -126,7 +126,7 @@ docker compose logs -f mc    # tail until you see  Done (<seconds>)!
 Expected log lines after startup:
 ```
 [StackUnknown] StackUnknown plugin enabled (phase 6+).
-[StackUnknown] World 'world' frozen at noon
+[StackUnknown] World 'world' frozen at night
 ```
 
 If the plugin fails to load, see Troubleshooting.

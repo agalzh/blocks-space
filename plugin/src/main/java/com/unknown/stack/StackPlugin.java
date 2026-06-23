@@ -2,6 +2,7 @@ package com.unknown.stack;
 
 import com.unknown.stack.commands.AxesCommand;
 import com.unknown.stack.commands.CenterCommand;
+import com.unknown.stack.commands.GeminiCommand;
 import com.unknown.stack.commands.LoadMockCommand;
 import com.unknown.stack.commands.OverviewCommand;
 import com.unknown.stack.commands.QueryCommand;
@@ -40,7 +41,7 @@ import java.net.URISyntaxException;
 public class StackPlugin extends JavaPlugin implements Listener {
 
     private static final String DEFAULT_WS_URL = "ws://host.docker.internal:8765";
-    private static final long DUSK_TICKS = 13500L;
+    private static final long NIGHT_TICKS = 22500L;
 
     private WsClient wsClient;
     private SidebarHud hud;
@@ -69,7 +70,7 @@ public class StackPlugin extends JavaPlugin implements Listener {
         getServer().getPluginManager().registerEvents(this, this);
 
         Bukkit.getScheduler().runTaskLater(this, () -> {
-            freezeDusk();
+            freezeNight();
             World world = SceneRenderer.defaultWorld();
             SpawnPlatform.build(world);
             WorldDecor.build(world);
@@ -84,6 +85,7 @@ public class StackPlugin extends JavaPlugin implements Listener {
             registerExecutor("overview", new OverviewCommand(wsClient));
             registerExecutor("visualize", new VisualizeCommand(wsClient));
             registerExecutor("query", new QueryCommand(wsClient));
+            registerExecutor("gemini", new GeminiCommand(wsClient));
             Bukkit.getScheduler().runTaskAsynchronously(this, () -> {
                 getLogger().info("WS connecting to " + wsUrl);
                 wsClient.connect();
@@ -93,19 +95,19 @@ public class StackPlugin extends JavaPlugin implements Listener {
         }
     }
 
-    private void freezeDusk() {
+    private void freezeNight() {
         for (World w : Bukkit.getWorlds()) {
             try {
                 w.setGameRule(GameRule.DO_DAYLIGHT_CYCLE, false);
                 w.setGameRule(GameRule.DO_WEATHER_CYCLE, false);
                 w.setGameRule(GameRule.DO_MOB_SPAWNING, false);
                 w.setGameRule(GameRule.DO_INSOMNIA, false);
-                w.setTime(DUSK_TICKS);
+                w.setTime(NIGHT_TICKS);
                 w.setStorm(false);
                 w.setThundering(false);
-                getLogger().info("World '" + w.getName() + "' frozen at dusk");
+                getLogger().info("World '" + w.getName() + "' frozen at night");
             } catch (RuntimeException e) {
-                getLogger().warning("freezeDusk failed for " + w.getName() + ": " + e.getMessage());
+                getLogger().warning("freezeNight failed for " + w.getName() + ": " + e.getMessage());
             }
         }
     }
@@ -123,10 +125,20 @@ public class StackPlugin extends JavaPlugin implements Listener {
     public void onJoin(PlayerJoinEvent e) {
         Player p = e.getPlayer();
         Bukkit.getScheduler().runTaskLater(this, () -> {
-            p.sendTitle(" ", "§6Stack Unknown §7· try §e/upload <path>", 5, 60, 15);
-            p.playSound(p.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_CHIME, 1.0F, 0.9F);
-            p.sendMessage("§7Commands: §e/upload §7·§e center §7·§e overview §7·§e visualize §7·§e axes §7·§e reset");
+            p.sendTitle("§b§lBlocks Space", "§7Minecraft as a 3D data viewer", 10, 70, 20);
+            p.playSound(p.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_CHIME, 1.2F, 0.9F);
         }, 20L);
+        Bukkit.getScheduler().runTaskLater(this, () -> {
+            p.sendMessage("§8§m                                                  ");
+            p.sendMessage("§b§lBlocks Space §7— turn any dataset into a 3D world you can walk through.");
+            p.sendMessage("§7Load    §8» §e/upload <path> [csv|json]");
+            p.sendMessage("§7Explore §8» §e/center §7· §e/axes §7· §7hover any block");
+            p.sendMessage("§7Ask AI  §8» §d/overview §7· §d/query <q> §7· §d/visualize <q>");
+            p.sendMessage("§7Status  §8» §b/gemini §7(active model + fallbacks)");
+            p.sendMessage("§7Manage  §8» §e/reset");
+            p.sendMessage("§8§m                                                  ");
+            p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_BELL, 0.6F, 1.4F);
+        }, 120L);
     }
 
     @EventHandler

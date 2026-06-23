@@ -6,11 +6,16 @@ import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Levelled;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 
 public final class WorldDecor {
 
     private WorldDecor() {}
+
+    /** Centres {x,y,z} of every island placed in the last build — read by AmbienceTask. */
+    public static final List<int[]> ISLAND_CENTERS = new ArrayList<>();
 
     private static final int PILLAR_Y_BASE = 4;
     private static final int PILLAR_Y_TOP = 65;
@@ -73,6 +78,7 @@ public final class WorldDecor {
     }
 
     private static void randomIslands(World w) {
+        ISLAND_CENTERS.clear();
         Random rng = new Random(DECOR_SEED + 7);
         int placed = 0;
         int attempts = 0;
@@ -90,6 +96,7 @@ public final class WorldDecor {
             if (Math.hypot(cx - SpawnPlatform.SPAWN_CX, cz - SpawnPlatform.SPAWN_CZ) < radius + 12) continue;
 
             placeIsland(w, cx, cy, cz, radius, rng);
+            ISLAND_CENTERS.add(new int[]{cx, cy, cz});
             placed++;
         }
     }
@@ -141,14 +148,17 @@ public final class WorldDecor {
             case NONE -> {}
         }
 
-        // Layered lighting: above canopy, inside foliage, and four perimeter lights at ground+2.
-        placeLight(w, cx, cy + 6, cz);
-        placeLight(w, cx, cy + 3, cz);
-        int half = Math.max(1, radius - 2);
-        placeLight(w, cx + half, cy + 2, cz);
-        placeLight(w, cx - half, cy + 2, cz);
-        placeLight(w, cx, cy + 2, cz + half);
-        placeLight(w, cx, cy + 2, cz - half);
+        // Strong, even lighting: a grid of invisible light cells just above the
+        // surface so the whole island top glows, plus lights through and over the
+        // canopy so the foliage itself is lit from within and above.
+        for (int dx = -radius; dx <= radius; dx += 3) {
+            for (int dz = -radius; dz <= radius; dz += 3) {
+                if (Math.hypot(dx, dz) > radius + 0.3) continue;
+                placeLight(w, cx + dx, cy + 2, cz + dz);
+            }
+        }
+        placeLight(w, cx, cy + 4, cz);
+        placeLight(w, cx, cy + 7, cz);
     }
 
     private static IslandFeature pickFeature(Random rng) {

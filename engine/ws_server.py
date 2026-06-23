@@ -167,6 +167,9 @@ async def handle(ws):
                 await _handle_visualize(ws, msg)
             elif cmd == "query":
                 await _handle_query(ws, msg)
+            elif cmd == "gemini_info":
+                await ws.send(json.dumps({"type": "gemini_info",
+                                          "info": gemini.info()}))
             elif cmd == "ping":
                 await ws.send(json.dumps({"type": "pong"}))
             else:

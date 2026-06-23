@@ -42,6 +42,10 @@ commands:
     description: Ask Gemini a question about the loaded dataset
     usage: /query <question>
     permission: stackunknown.query
+  gemini:
+    description: Show which Gemini model is active plus the fallback chain
+    usage: /gemini
+    permission: stackunknown.gemini
 permissions:
   stackunknown.ping:
     description: Allows /ping
@@ -70,3 +74,6 @@ permissions:
   stackunknown.query:
     description: Allows /query
     default: op
+  stackunknown.gemini:
+    description: Allows /gemini
+    default: true

@@ -40,5 +40,19 @@ public class AmbienceTask extends BukkitRunnable {
             double y = 65 + rng.nextDouble() * 5;
             w.spawnParticle(Particle.SOUL_FIRE_FLAME, x, y, z, 1, 0.05, 0.05, 0.05, 0.005);
         }
+
+        // Gentle fireflies drifting over a couple of the floating islands each tick.
+        java.util.List<int[]> islands = WorldDecor.ISLAND_CENTERS;
+        if (!islands.isEmpty()) {
+            for (int k = 0; k < 2; k++) {
+                int[] c = islands.get(rng.nextInt(islands.size()));
+                for (int i = 0; i < 3; i++) {
+                    double x = c[0] - 3.5 + rng.nextDouble() * 7.0;
+                    double z = c[2] - 3.5 + rng.nextDouble() * 7.0;
+                    double y = c[1] + 1.0 + rng.nextDouble() * 4.0;
+                    w.spawnParticle(Particle.END_ROD, x, y, z, 1, 0.05, 0.05, 0.05, 0.004);
+                }
+            }
+        }
     }
 }

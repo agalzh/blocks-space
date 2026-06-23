@@ -83,7 +83,12 @@ public final class SpawnPlatform {
             }
         }
 
+        // Keep the deck warm and bright even at deep night (22500).
         placeLight(w, SPAWN_CX, 67, SPAWN_CZ);
+        placeLight(w, SPAWN_CX + 4, 66, SPAWN_CZ);
+        placeLight(w, SPAWN_CX - 4, 66, SPAWN_CZ);
+        placeLight(w, SPAWN_CX, 66, SPAWN_CZ + 4);
+        placeLight(w, SPAWN_CX, 66, SPAWN_CZ - 4);
 
         w.setSpawnLocation(new Location(w, SPAWN_CX + 0.5, STAND_Y, SPAWN_CZ + 0.5));
     }
